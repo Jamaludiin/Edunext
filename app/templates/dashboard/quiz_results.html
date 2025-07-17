@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Quiz Results: {{ quiz.title }} - Learning Assistant{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .results-header {
+        margin-bottom: 2rem;
+    }
+
+    .score-box {
+        font-size: 2.5rem;
+        font-weight: bold;
+        padding: 20px;
+        border-radius: 5px;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .correct-answer {
+        background-color: rgba(25, 135, 84, 0.2);
+        border-left: 4px solid #198754;
+    }
+
+    .incorrect-answer {
+        background-color: rgba(220, 53, 69, 0.2);
+        border-left: 4px solid #dc3545;
+    }
+
+    .skipped-answer {
+        background-color: rgba(255, 193, 7, 0.2);
+        border-left: 4px solid #ffc107;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Quiz Results: {{ quiz.title }}</h1>
+        <span class="badge bg-info">{{ quiz.subject.code }} - {{ quiz.subject.name }}</span>
+    </div>
+
+    {% include "includes/flash_messages.html" %}
+
+    <div class="row results-header">
+        <div class="col-md-6">
+            <div class="card bg-dark text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Quiz Summary</h5>
+                    <ul class="list-unstyled">
+                        <li><strong>Completion Date:</strong> {{ attempt.end_time.strftime('%Y-%m-%d %H:%M') }}</li>
+                        <li><strong>Duration:</strong> {{ (attempt.end_time - attempt.start_time).total_seconds()|int //
+                            60 }} minutes</li>
+                        <li><strong>Total Questions:</strong> {{ question_data|length }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-dark text-white mb-4">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Your Score</h5>
+                    {% set score = attempt.score|round(1) %}
+                    <div class="score-box 
+                        {% if score >= 80 %}text-success
+                        {% elif score >= 60 %}text-warning
+                        {% else %}text-danger{% endif %}">
+                        {{ score }}%
+                    </div>
+                    <div class="mt-3">
+                        {% if score >= 80 %}
+                        <span class="badge bg-success">Excellent!</span>
+                        {% elif score >= 60 %}
+                        <span class="badge bg-warning">Good effort!</span>
+                        {% else %}
+                        <span class="badge bg-danger">Needs improvement</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mb-3">Detailed Results</h4>
+
+    {% for question_id, data in question_data.items() %}
+    <div class="card bg-dark text-white mb-4">
+        <div class="card-header d-flex justify-content-between">
+            <span>Question {{ loop.index }}</span>
+            <span
+                class="badge {% if data.question.difficulty_level <= 2 %}bg-success{% elif data.question.difficulty_level == 3 %}bg-info{% else %}bg-warning{% endif %}">
+                Difficulty: {{ data.question.difficulty_level }}
+            </span>
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">{{ data.question.text }}</h5>
+
+            <div class="answers mt-4">
+                {% for answer in data.all_answers %}
+                <div class="p-3 mb-2 rounded
+                    {% if data.student_answer and data.student_answer.answer_id == answer.id %}
+                        {% if answer.is_correct %}correct-answer{% else %}incorrect-answer{% endif %}
+                    {% elif answer.is_correct %}correct-answer{% endif %}">
+                    <div class="d-flex align-items-center">
+                        <div>{{ answer.text }}</div>
+                        <div class="ms-auto">
+                            {% if data.student_answer and data.student_answer.answer_id == answer.id %}
+                            {% if answer.is_correct %}
+                            <span class="badge bg-success"><i class="fas fa-check"></i> Your answer (Correct)</span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="fas fa-times"></i> Your answer (Incorrect)</span>
+                            {% endif %}
+                            {% elif answer.is_correct %}
+                            <span class="badge bg-success"><i class="fas fa-check"></i> Correct answer</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if not data.student_answer.answer_id %}
+                <div class="p-3 mb-2 rounded skipped-answer">
+                    <span class="badge bg-warning"><i class="fas fa-exclamation-triangle"></i> You skipped this
+                        question</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="d-flex justify-content-between mt-4">
+        <a href="{{ url_for('dashboard.student_quizzes') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Quizzes
+        </a>
+        <a href="{{ url_for('dashboard.start_quiz', quiz_id=quiz.id) }}" class="btn btn-primary">
+            <i class="fas fa-redo"></i> Attempt Again
+        </a>
+    </div>
+</div>
+{% endblock %}

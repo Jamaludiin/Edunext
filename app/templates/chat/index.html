@@ -1,0 +1,762 @@
+{% extends 'base.html' %}
+
+{% block title %}Subject Chat{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .chat-container {
+        height: calc(100vh - 210px);
+        display: flex;
+        flex-direction: column;
+        background-color: var(--bg-darker);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .chat-header {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 1rem;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .chat-header .new-conversation-btn {
+        background-color: var(--primary-color);
+        border: none;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .chat-header .new-conversation-btn:hover {
+        background-color: var(--secondary-color);
+        transform: translateY(-1px);
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .message {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        max-width: 85%;
+    }
+
+    .user-message {
+        margin-left: auto;
+    }
+
+    .bot-message {
+        margin-right: auto;
+    }
+
+    .message-avatar {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .bot-message .message-avatar {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .user-message .message-avatar {
+        background-color: var(--secondary-color);
+        color: white;
+        order: 1;
+    }
+
+    .message-content {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.9375rem;
+        line-height: 1.5;
+        position: relative;
+    }
+
+    .user-message .message-content {
+        background-color: var(--primary-color);
+        color: white;
+        border-top-right-radius: 0;
+    }
+
+    .bot-message .message-content {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
+        border-top-left-radius: 0;
+    }
+
+    .chat-input {
+        padding: 1rem;
+        background-color: var(--bg-darker);
+        border-top: 1px solid var(--border-color);
+    }
+
+    .chat-input .input-group {
+        gap: 0.5rem;
+    }
+
+    .chat-input .form-select,
+    .chat-input .form-control {
+        background-color: var(--bg-dark);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        font-size: 0.9375rem;
+    }
+
+    .chat-input .form-select:focus,
+    .chat-input .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+    }
+
+    .chat-input .btn {
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .context-panel {
+        height: calc(100vh - 210px);
+        background-color: var(--bg-darker);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        overflow-y: auto;
+    }
+
+    .context-panel h5 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .context-item {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-color);
+    }
+
+    .context-source {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .context-content {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 1rem 0;
+        gap: 0.75rem;
+    }
+
+    .loading-text {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .loading-dots {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .loading-dots span {
+        width: 0.5rem;
+        height: 0.5rem;
+        background-color: var(--primary-color);
+        border-radius: 50%;
+        animation: loading 1.4s ease-in-out infinite;
+    }
+
+    .loading-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .loading-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes loading {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-0.5rem);
+        }
+    }
+
+    /* Alert Styles */
+    .alert-primary {
+        background-color: rgba(99, 102, 241, 0.1);
+        border-color: rgba(99, 102, 241, 0.2);
+        color: var(--text-primary);
+    }
+
+    .alert-primary .fas {
+        color: var(--primary-color);
+    }
+
+    /* Custom scrollbar for chat messages */
+    .chat-messages::-webkit-scrollbar {
+        width: 0.5rem;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+        background-color: var(--bg-darker);
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+        background-color: var(--border-color);
+        border-radius: 0.25rem;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+        background-color: var(--text-secondary);
+    }
+
+    #pdf-upload-input {
+        display: none;
+    }
+
+    /* Additional classes for border radius control */
+    .left-rounded {
+        border-radius: 20px 0 0 20px !important;
+    }
+
+    .no-radius {
+        border-radius: 0 !important;
+    }
+
+    .right-rounded {
+        border-radius: 0 20px 20px 0 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 px-4">
+    <div class="row">
+        <div class="col-md-9">
+            <div class="chat-container" id="chat-container" data-current-subject="{{ current_subject }}"
+                data-initial='{{ initial_data | tojson | safe }}'>
+                <div class="chat-header">
+                    <span>Subject Chat: <span id="current-subject">{{ current_subject }}</span></span>
+                    <button id="new-conversation-btn" class="new-conversation-btn">
+                        <i class="fas fa-plus"></i> New Conversation
+                    </button>
+                </div>
+
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message bot-message">
+                        <div class="message-content">
+                            Hello! I'm your Edunext for subject-specific knowledge.
+                            {% if subjects and subjects|length > 0 %}
+                            Please select a subject from the dropdown to get started.
+                            {% else %}
+                            No subjects are currently available. Please check back later or use the General Chat for
+                            university-wide knowledge.
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input">
+                    <div class="input-group">
+                        {% if subjects and subjects|length > 0 %}
+                        <select id="subject-selector" class="form-select left-rounded" style="max-width: 200px;">
+                            {% for subject in subjects %}
+                            <option value="{{ subject.id }}">{{ subject.code }}: {{ subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% endif %}
+
+                        <input type="text" id="user-input" placeholder="Type your question here..."
+                            class="form-control {% if subjects and subjects|length > 0 %}no-radius{% else %}left-rounded{% endif %}">
+
+                        <!-- Upload button next to send button -->
+                        <button type="button" id="upload-pdf-btn" class="btn btn-primary no-radius"
+                            data-bs-toggle="tooltip" data-bs-placement="top"
+                            title="Upload PDF for personalized answers">
+                            <i class="fas fa-file-upload"></i>
+                        </button>
+
+                        <button id="send-button" class="btn btn-primary right-rounded">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+
+                        <input type="file" id="pdf-upload-input" accept=".pdf" style="display: none;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="context-panel">
+                <h5>Source Context</h5>
+                <div class="alert alert-primary">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span>When I answer your questions, I'll show the relevant source material here.</span>
+                </div>
+                <div id="context-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const contextContainer = document.getElementById('context-container');
+        const subjectSelector = document.getElementById('subject-selector');
+        const uploadPdfBtn = document.getElementById('upload-pdf-btn');
+        const pdfUploadInput = document.getElementById('pdf-upload-input');
+        const chatContainer = document.getElementById('chat-container');
+        const newConversationBtn = document.getElementById('new-conversation-btn');
+        const currentSubjectSpan = document.getElementById('current-subject');
+
+        // Retrieve and parse initial data from data attribute
+        let initialData = {};
+        let currentConversationId = null;
+        let initialSubjectId = null;
+        let initialMessages = [];
+        try {
+            initialData = JSON.parse(chatContainer.dataset.initial || '{}');
+            currentConversationId = initialData.conversation_id || null;
+            initialSubjectId = initialData.initial_subject_id || null;
+            initialMessages = initialData.messages || [];
+            if (!Array.isArray(initialMessages)) {
+                initialMessages = []; // Ensure it's an array
+            }
+        } catch (e) {
+            console.error('Error parsing initial data:', e);
+            currentConversationId = null;
+            initialSubjectId = null;
+            initialMessages = [];
+        }
+
+        // Set initial subject selector value
+        if (initialSubjectId && subjectSelector) {
+            subjectSelector.value = initialSubjectId;
+        }
+
+        // Initialize chat with existing messages if available
+        function initializeChat() {
+            if (initialMessages && initialMessages.length > 0) {
+                // Clear the default welcome message
+                chatMessages.innerHTML = '';
+
+                // Add conversation header if we have a conversation ID
+                if (currentConversationId) {
+                    const headerDiv = document.createElement('div');
+                    headerDiv.id = 'conversation-header';
+                    headerDiv.className = 'alert alert-light d-flex justify-content-between align-items-center mb-3';
+
+                    const conversationInfo = document.createElement('div');
+                    conversationInfo.innerHTML = `<small>Continuing conversation #${currentConversationId}</small>`;
+
+                    const historyLink = document.createElement('a');
+                    historyLink.href = '{{ url_for("chat.subject_chat_history_view") }}'; // Point to SUBJECT history view
+                    historyLink.className = 'btn btn-sm btn-outline-primary';
+                    historyLink.innerHTML = '<i class="fas fa-history"></i> View History';
+
+                    headerDiv.appendChild(conversationInfo);
+                    headerDiv.appendChild(historyLink);
+                    chatMessages.appendChild(headerDiv);
+                }
+
+                // Add previous messages from the parsed JSON
+                initialMessages.forEach((message, index) => {
+                    addMessage(message.content, message.sender);
+
+                    // Show context for the last AI message
+                    if (index === initialMessages.length - 1 && message.sender === 'ai' && message.context) {
+                        displayContext(message.context);
+
+                        // Show context type if available
+                        if (message.context_type) {
+                            const dbTypeInfo = document.createElement('div');
+                            dbTypeInfo.className = 'alert alert-secondary mt-2';
+                            let dbType = "General Knowledge";
+
+                            if (message.context_type === 'student') {
+                                dbType = "Your Personal Documents";
+                            } else if (message.context_type === 'subject') {
+                                dbType = "Subject Documents";
+                            }
+
+                            dbTypeInfo.innerHTML = `<small><strong>Source:</strong> ${dbType}</small>`;
+                            contextContainer.prepend(dbTypeInfo);
+                        }
+                    }
+                });
+
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+
+        // Function to add a message to the chat
+        function addMessage(message, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            const messageAvatar = document.createElement('div');
+            messageAvatar.className = 'message-avatar';
+            if (sender === 'user') {
+                messageAvatar.innerHTML = '<i class="fas fa-user"></i>';
+            } else {
+                messageAvatar.innerHTML = '<i class="fas fa-robot"></i>';
+            }
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.innerText = message;
+            
+            messageDiv.appendChild(messageAvatar);
+            messageDiv.appendChild(messageContent);
+            chatMessages.appendChild(messageDiv);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Function to show loading indicator
+        function showLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading';
+            loadingDiv.id = 'loading-indicator';
+
+            const loadingDots = document.createElement('div');
+            loadingDots.className = 'loading-dots';
+
+            for (let i = 0; i < 3; i++) {
+                const dot = document.createElement('span');
+                loadingDots.appendChild(dot);
+            }
+
+            const loadingText = document.createElement('div');
+            loadingText.className = 'loading-text';
+            loadingText.textContent = 'AI is thinking...';
+
+            loadingDiv.appendChild(loadingDots);
+            loadingDiv.appendChild(loadingText);
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Function to hide loading indicator
+        function hideLoading() {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
+        }
+
+        // Function to display context
+        function displayContext(context) {
+            contextContainer.innerHTML = '';
+
+            if (!context || context.length === 0) {
+                const noContext = document.createElement('div');
+                noContext.className = 'alert alert-warning';
+                noContext.innerText = 'No context available for this response.';
+                contextContainer.appendChild(noContext);
+                return;
+            }
+
+            context.forEach(item => {
+                const contextItem = document.createElement('div');
+                contextItem.className = 'context-item';
+
+                const contextSource = document.createElement('div');
+                contextSource.className = 'context-source';
+                contextSource.innerText = `Source ${item.index}`;
+
+                const contextContent = document.createElement('div');
+                contextContent.className = 'context-content';
+                contextContent.innerText = item.content;
+
+                contextItem.appendChild(contextSource);
+                contextItem.appendChild(contextContent);
+                contextContainer.appendChild(contextItem);
+            });
+        }
+
+        // Function to send message to the server
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message === '') return;
+
+            // Get selected subject (if subject selector exists)
+            let subjectId = initialSubjectId;
+            if (subjectSelector) {
+                subjectId = subjectSelector.value;
+                // Update initialSubjectId in case user changed it
+                initialSubjectId = subjectId;
+            }
+
+            // Add user message to chat
+            addMessage(message, 'user');
+            userInput.value = '';
+
+            // Show loading indicator
+            showLoading();
+
+            // Send message to server
+            fetch('/chat/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    question: message,
+                    subject_id: subjectId,
+                    conversation_id: currentConversationId // Include conversation ID if we have one
+                }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading indicator
+                    hideLoading();
+
+                    if (data.success) {
+                        // Update conversation ID if provided
+                        if (data.conversation_id) {
+                            currentConversationId = data.conversation_id;
+
+                            // If this is the start of a conversation, add a header with history link
+                            if (!document.getElementById('conversation-header') && currentConversationId) {
+                                const headerDiv = document.createElement('div');
+                                headerDiv.id = 'conversation-header';
+                                headerDiv.className = 'alert alert-light d-flex justify-content-between align-items-center mb-3';
+
+                                const conversationInfo = document.createElement('div');
+                                conversationInfo.innerHTML = `<small>Conversation #${currentConversationId}</small>`;
+
+                                const historyLink = document.createElement('a');
+                                historyLink.href = '{{ url_for("chat.subject_chat_history_view") }}'; // Point to SUBJECT history view
+                                historyLink.className = 'btn btn-sm btn-outline-primary';
+                                historyLink.innerHTML = '<i class="fas fa-history"></i> View History';
+
+                                headerDiv.appendChild(conversationInfo);
+                                headerDiv.appendChild(historyLink);
+
+                                // Insert at the top of chat messages
+                                chatMessages.insertBefore(headerDiv, chatMessages.firstChild);
+                            }
+                        }
+
+                        // Add bot message to chat
+                        addMessage(data.answer, 'bot');
+
+                        // Display context
+                        displayContext(data.context);
+
+                        // If there's subject info, show it in the message
+                        if (data.subject) {
+                            const subjectInfo = document.createElement('div');
+                            subjectInfo.className = 'alert alert-info mt-2';
+                            subjectInfo.innerHTML = `<small><strong>Source:</strong> ${data.subject}</small>`;
+                            contextContainer.prepend(subjectInfo);
+                        } else if (data.context_type) {
+                            // Show which database was used
+                            const dbTypeInfo = document.createElement('div');
+                            dbTypeInfo.className = 'alert alert-secondary mt-2';
+                            let dbType = "General Knowledge";
+                            if (data.context_type === 'student') {
+                                dbType = "Your Personal Documents";
+                            } else if (data.context_type === 'subject') {
+                                dbType = "Subject Documents";
+                            }
+                            dbTypeInfo.innerHTML = `<small><strong>Source:</strong> ${dbType}</small>`;
+                            contextContainer.prepend(dbTypeInfo);
+                        }
+                    } else {
+                        // Show error message
+                        addMessage(`Error: ${data.error}`, 'bot');
+
+                        // If there's a redirect URL, suggest the user to navigate there
+                        if (data.redirect_url) {
+                            addMessage(`Please upload documents first: <a href="${data.redirect_url}">Upload Documents</a>`, 'bot');
+                        }
+                    }
+                })
+                .catch(error => {
+                    // Hide loading indicator
+                    hideLoading();
+
+                    // Show error message
+                    addMessage(`Error communicating with the server: ${error}`, 'bot');
+                });
+        }
+
+        // Function to handle subject selection change
+        function handleSubjectChange() {
+            if (subjectSelector) {
+                // When user changes subject, redirect to load the appropriate conversation for that subject
+                subjectSelector.addEventListener('change', function () {
+                    const selectedSubjectId = this.value;
+                    if (selectedSubjectId) {
+                        window.location.href = `/chat?subject_id=${selectedSubjectId}`;
+                    }
+                });
+            }
+        }
+
+        // Function to handle PDF uploads
+        function handlePdfUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Check if file is PDF
+            if (file.type !== 'application/pdf') {
+                addMessage('Only PDF files are supported.', 'bot');
+                return;
+            }
+
+            // Show uploading message
+            addMessage(`Uploading ${file.name}...`, 'user');
+            showLoading();
+
+            // Create form data
+            const formData = new FormData();
+            formData.append('pdf_file', file);
+
+            // Upload file
+            fetch('/chat/upload-pdf', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                credentials: 'same-origin',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+
+                    if (data.success) {
+                        addMessage(`Successfully uploaded and processed "${data.filename}". I can now answer questions based on this document.`, 'bot');
+                    } else {
+                        addMessage(`Error uploading file: ${data.error}`, 'bot');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    addMessage(`Error uploading file: ${error}`, 'bot');
+                });
+
+            // Reset file input
+            e.target.value = '';
+        }
+
+        // Function to start a new conversation
+        function startNewConversation() {
+            // Reset conversation ID
+            currentConversationId = null;
+
+            // Get current subject from the span or data attribute
+            const currentSubject = currentSubjectSpan.textContent || chatContainer.dataset.currentSubject;
+
+            // Clear chat messages except for the welcome message
+            chatMessages.innerHTML = '';
+
+            // Add welcome message with current subject
+            const welcomeMessage = document.createElement('div');
+            welcomeMessage.className = 'message bot-message';
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.innerText = `Hello! I'm your Edunext for ${currentSubject}. How can I help you today?`;
+            welcomeMessage.appendChild(messageContent);
+            chatMessages.appendChild(welcomeMessage);
+
+            // Clear context
+            contextContainer.innerHTML = '';
+
+            // Remove conversation header if exists
+            const conversationHeader = document.getElementById('conversation-header');
+            if (conversationHeader) {
+                conversationHeader.remove();
+            }
+
+            // Clear input field
+            userInput.value = '';
+        }
+
+        // Initialize chat when page loads
+        initializeChat();
+
+        // Set up subject selector change handler
+        handleSubjectChange();
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initialize PDF upload button if it exists
+        if (uploadPdfBtn && pdfUploadInput) {
+            uploadPdfBtn.addEventListener('click', function () {
+                pdfUploadInput.click();
+            });
+
+            pdfUploadInput.addEventListener('change', handlePdfUpload);
+        }
+
+        // Add event listener for new conversation button
+        newConversationBtn.addEventListener('click', startNewConversation);
+
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
+{% endblock %}

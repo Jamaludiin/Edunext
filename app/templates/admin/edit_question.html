@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Edit Question - {{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="display-5">Edit Question</h1>
+            <p class="text-muted">Quiz: {{ quiz.title }}</p>
+        </div>
+    </div>
+
+    {% include "includes/flash_messages.html" %}
+
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.edit_question', question_id=question.id) }}">
+                        {{ form.csrf_token }}
+
+                        <div class="mb-3">
+                            <label for="{{ form.text.id }}" class="form-label">{{ form.text.label.text }} <span
+                                    class="text-danger">*</span></label>
+                            {{ form.text(class="form-control bg-dark text-white", rows=3, placeholder="Enter question
+                            text") }}
+                            {% if form.text.errors %}
+                            <div class="text-danger">
+                                {% for error in form.text.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.difficulty_level.id }}" class="form-label">{{
+                                form.difficulty_level.label.text }} <span class="text-danger">*</span></label>
+                            {{ form.difficulty_level(class="form-select bg-dark text-white") }}
+                            {% if form.difficulty_level.errors %}
+                            <div class="text-danger">
+                                {% for error in form.difficulty_level.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <hr class="my-4">
+
+                        <h5>Answer Options <span class="text-danger">*</span></h5>
+                        <p class="text-muted small">Add at least 2 answer options and mark at least one as correct.</p>
+
+                        <div id="answers-container">
+                            <!-- Existing answers -->
+                            {% for answer in answers %}
+                            <div class="answer-row row mb-3">
+                                <div class="col-md-9">
+                                    <input type="text" name="answer_text[]" class="form-control bg-dark text-white"
+                                        placeholder="Answer option {{ loop.index }}" value="{{ answer.text }}" required>
+                                    <input type="hidden" name="answer_id[]" value="{{ answer.id }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input answer-correct-input" type="checkbox"
+                                            name="is_correct_checkbox[]" value="1" onchange="updateCorrectAnswers()" {%
+                                            if answer.is_correct %}checked{% endif %}>
+                                        <input type="hidden" name="is_correct[]"
+                                            value="{% if answer.is_correct %}1{% else %}0{% endif %}"
+                                            class="answer-correct-value">
+                                        <label class="form-check-label">Correct Answer</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-answer" {% if
+                                        answers|length <=2 %}disabled{% endif %}>
+                                        <i class="fas fa-minus-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-4">
+                            <button type="button" id="add-answer" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-plus-circle"></i> Add Another Answer Option
+                            </button>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                            <a href="{{ url_for('admin.quiz_questions', quiz_id=quiz.id) }}"
+                                class="btn btn-outline-secondary">
+                                <i class="fas fa-times-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const answersContainer = document.getElementById('answers-container');
+        const addAnswerBtn = document.getElementById('add-answer');
+
+        // Add answer option
+        addAnswerBtn.addEventListener('click', function () {
+            const answerCount = document.querySelectorAll('.answer-row').length + 1;
+
+            const newRow = document.createElement('div');
+            newRow.className = 'answer-row row mb-3';
+            newRow.innerHTML = `
+                <div class="col-md-9">
+                    <input type="text" name="answer_text[]" class="form-control bg-dark text-white" placeholder="Answer option ${answerCount}" required>
+                    <input type="hidden" name="answer_id[]" value="">
+                </div>
+                <div class="col-md-2">
+                    <div class="form-check">
+                        <input class="form-check-input answer-correct-input" type="checkbox" name="is_correct_checkbox[]" value="1" onchange="updateCorrectAnswers()">
+                        <input type="hidden" name="is_correct[]" value="0" class="answer-correct-value">
+                        <label class="form-check-label">Correct Answer</label>
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-answer">
+                        <i class="fas fa-minus-circle"></i>
+                    </button>
+                </div>
+            `;
+
+            answersContainer.appendChild(newRow);
+            updateRemoveButtons();
+
+            // Add event listener to new remove button
+            newRow.querySelector('.remove-answer').addEventListener('click', function () {
+                newRow.remove();
+                updateRemoveButtons();
+            });
+        });
+
+        // Add event listeners to existing remove buttons
+        document.querySelectorAll('.remove-answer').forEach(button => {
+            button.addEventListener('click', function () {
+                this.closest('.answer-row').remove();
+                updateRemoveButtons();
+            });
+        });
+    });
+
+    // Update which remove buttons should be enabled
+    function updateRemoveButtons() {
+        const answerRows = document.querySelectorAll('.answer-row');
+        const removeButtons = document.querySelectorAll('.remove-answer');
+
+        removeButtons.forEach(button => {
+            button.disabled = answerRows.length <= 2;
+        });
+    }
+
+    // Update hidden values for correct answers
+    function updateCorrectAnswers() {
+        const checkboxes = document.querySelectorAll('.answer-correct-input');
+        const hiddenInputs = document.querySelectorAll('.answer-correct-value');
+
+        checkboxes.forEach((checkbox, index) => {
+            hiddenInputs[index].value = checkbox.checked ? '1' : '0';
+        });
+    }
+</script>
+{% endblock %}

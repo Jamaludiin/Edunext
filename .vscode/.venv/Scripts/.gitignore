@@ -1,0 +1,11 @@
+# System files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+__pycache__/
+.ipynb_checkpoints/
+.env
+
+# VSCode settings
+.vscode/

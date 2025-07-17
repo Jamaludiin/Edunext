@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Edit Quiz{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="display-5">Edit Quiz</h1>
+        </div>
+    </div>
+
+    {% include "includes/flash_messages.html" %}
+
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.edit_quiz', quiz_id=quiz.id) }}">
+                        {{ form.csrf_token }}
+
+                        <div class="mb-3">
+                            <label for="{{ form.title.id }}" class="form-label">{{ form.title.label.text }} <span
+                                    class="text-danger">*</span></label>
+                            {{ form.title(class="form-control bg-dark text-white", placeholder="Enter quiz title") }}
+                            {% if form.title.errors %}
+                            <div class="text-danger">
+                                {% for error in form.title.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.description.id }}" class="form-label">{{ form.description.label.text
+                                }}</label>
+                            {{ form.description(class="form-control bg-dark text-white", rows=3, placeholder="Enter quiz
+                            description") }}
+                            {% if form.description.errors %}
+                            <div class="text-danger">
+                                {% for error in form.description.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.subject_id.id }}" class="form-label">{{ form.subject_id.label.text }}
+                                <span class="text-danger">*</span></label>
+                            {{ form.subject_id(class="form-select bg-dark text-white") }}
+                            {% if form.subject_id.errors %}
+                            <div class="text-danger">
+                                {% for error in form.subject_id.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                            <a href="{{ url_for('admin.quizzes') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

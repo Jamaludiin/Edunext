@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Student Management - {{ subject.name }} - Admin Dashboard{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .table {
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 0;
+        background-color: var(--bg-darker);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .table th {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--text-secondary);
+        font-weight: 500;
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .table td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .table tbody tr:nth-child(odd) {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .table tbody tr:hover td {
+        color: rgba(255, 255, 255, 1);
+    }
+
+    .modal-content {
+        background-color: var(--bg-darker);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .modal-header {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .modal-footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .form-select {
+        background-color: var(--bg-dark);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), 0.25);
+    }
+
+    .form-label {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .table-dark.table-striped > tbody > tr:nth-of-type(odd) {
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0">{{ subject.name }} ({{ subject.code }})</h1>
+            <p class="text-muted">Student Management</p>
+        </div>
+        <div>
+            <a href="{{ url_for('admin.subjects') }}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left"></i> Back to Subjects
+            </a>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#enrollStudentModal">
+                <i class="fas fa-user-plus"></i> Enroll Student
+            </button>
+        </div>
+    </div>
+
+    <!-- Subject Info -->
+    <div class="card shadow-sm mb-4 bg-dark">
+        <div class="card-header">
+            <h5 class="mb-0 text-white">Subject Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center">
+                            <span class="text-muted me-2">Code:</span>
+                            <span class="text-white">{{ subject.code }}</span>
+                        </div>
+                        <div class="d-flex align-items-start">
+                            <span class="text-muted me-2">Description:</span>
+                            <span class="text-white">{{ subject.description or 'No description available' }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center">
+                            <span class="text-muted me-2">Status:</span>
+                            <span class="badge bg-{{ 'success' if subject.is_active else 'secondary' }}">
+                                {{ 'Active' if subject.is_active else 'Inactive' }}
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="text-muted me-2">Created:</span>
+                            <span class="text-white">{{ subject.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enrolled Students -->
+    <div class="card shadow-sm bg-dark">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-white">Enrolled Students</h5>
+                <span class="badge bg-primary">{{ subject.enrolled_students|length }} Total</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-dark">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Enrolled On</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for enrollment in subject.enrolled_students %}
+                        <tr>
+                            <td>{{ enrollment.user.id }}</td>
+                            <td>{{ enrollment.user.name }}</td>
+                            <td>{{ enrollment.user.email }}</td>
+                            <td>{{ enrollment.enrolled_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <form
+                                    action="{{ url_for('admin.unenroll_student', subject_id=subject.id, user_id=enrollment.user.id) }}"
+                                    method="post">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-danger"
+                                        onclick="return confirm('Are you sure you want to remove {{ enrollment.user.name }} from {{ subject.name }}?');">
+                                        <i class="fas fa-user-minus"></i> Remove
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">No students enrolled in this subject</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enroll Student Modal -->
+<div class="modal fade" id="enrollStudentModal" tabindex="-1" aria-labelledby="enrollStudentModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="enrollStudentModalLabel">Enroll Student in {{ subject.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('admin.enroll_student', subject_id=subject.id) }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    {% if available_students %}
+                    <div class="mb-3">
+                        <label for="student_id" class="form-label">Select Student</label>
+                        <select class="form-select" id="student_id" name="student_id" required>
+                            <option value="">-- Select a student --</option>
+                            {% for student in available_students %}
+                            <option value="{{ student.id }}">{{ student.name }} ({{ student.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> All students are already enrolled in this subject.
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    {% if available_students %}
+                    <button type="submit" class="btn btn-primary">Enroll Student</button>
+                    {% else %}
+                    <button type="button" class="btn btn-primary" disabled>Enroll Student</button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

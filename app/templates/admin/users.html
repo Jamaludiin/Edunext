@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - Admin Dashboard{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    /* Custom Admin Styles */
+    .card {
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-dark);
+    }
+
+    .card-header {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem;
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+
+    .card-footer {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-top: 1px solid var(--border-color);
+        padding: 0.75rem 1.25rem;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table th {
+        border-top: none;
+        border-bottom: 2px solid var(--border-color);
+        color: var(--text-secondary);
+        font-weight: 500;
+        padding: 1rem;
+    }
+
+    .table td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .table-dark {
+        background-color: transparent;
+    }
+
+    .table {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+    }
+
+    .table tbody tr:hover td {
+        color: rgba(255, 255, 255, 1);
+    }
+
+    .table td {
+        background-color: var(--bg-darker);
+    }
+
+    .table-dark.table-striped > tbody > tr:nth-of-type(odd) {
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .modal-content {
+        background-color: var(--bg-darker);
+        border: 1px solid var(--border-color);
+    }
+
+    .modal-header {
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-footer {
+        border-top: 1px solid var(--border-color);
+    }
+
+    .form-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control,
+    .form-select {
+        background-color: var(--bg-dark);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        background-color: var(--bg-dark);
+        border-color: var(--primary-color);
+        color: var(--text-primary);
+        box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), 0.25);
+    }
+
+    .form-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    }
+
+    .btn-group .btn {
+        padding: 0.375rem 0.75rem;
+    }
+
+    .btn-group .btn:not(:last-child) {
+        margin-right: 0.25rem;
+    }
+
+    .badge {
+        padding: 0.5em 0.75em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 px-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">User Management</h1>
+            <p class="text-secondary mb-0">Manage system users and their roles</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                <i class="fas fa-plus me-2"></i> Create User
+            </button>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">All Users</h5>
+                <span class="badge bg-primary">{{ users|length }} Total</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-striped table-bordered mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Registered On</th>
+                            <th>Last Login</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>{{ user.name }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'primary' if user.role == 'student' else 'warning' }}">
+                                    {{ user.role }}
+                                </span>
+                            </td>
+                            <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal"
+                                        data-bs-target="#editUserModal{{ user.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+
+                                    {% if user.firebase_uid != session.get('user_id') %}
+                                    <form action="{{ url_for('admin.toggle_user_role', user_id=user.id) }}"
+                                        method="post" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit"
+                                            class="btn btn-sm {{ 'btn-warning' if user.role == 'student' else 'btn-primary' }}"
+                                            onclick="return confirm('Are you sure you want to change this user\'s role?');">
+                                            Make {{ 'Admin' if user.role == 'student' else 'Student' }}
+                                        </button>
+                                    </form>
+
+                                    <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" method="post"
+                                        class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Are you sure you want to delete {{ user.name }}? This action cannot be undone.');">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Current User</span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Edit User Modal -->
+                                <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1"
+                                    aria-labelledby="editUserModalLabel{{ user.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="editUserModalLabel{{ user.id }}">Edit User
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                            </div>
+                                            <form action="{{ url_for('admin.update_user', user_id=user.id) }}"
+                                                method="post">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label for="name{{ user.id }}" class="form-label">Name</label>
+                                                        <input type="text" class="form-control" id="name{{ user.id }}"
+                                                            name="name" value="{{ user.name }}" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="email{{ user.id }}" class="form-label">Email</label>
+                                                        <input type="email" class="form-control" id="email{{ user.id }}"
+                                                            name="email" value="{{ user.email }}" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="role{{ user.id }}" class="form-label">Role</label>
+                                                        <select class="form-select" id="role{{ user.id }}" name="role">
+                                                            <option value="student" {% if user.role=='student'
+                                                                %}selected{% endif %}>Student</option>
+                                                            <option value="admin" {% if user.role=='admin' %}selected{%
+                                                                endif %}>Administrator</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary"
+                                                        data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">No users found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createUserModalLabel">Create New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('admin.create_user') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Role</label>
+                        <select class="form-select" id="role" name="role">
+                            <option value="student" selected>Student</option>
+                            <option value="admin">Administrator</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Profile - Learning Assistant{% endblock %}
+{% block styles %}
+{{ super() }}
+<style>
+    .profile-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #222;
+        border: 3px solid #3498db;
+        margin-bottom: 1rem;
+    }
+    .profile-card {
+        background: #23272b;
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+        padding: 2rem 2.5rem 2rem 2.5rem;
+        margin-top: 2rem;
+    }
+    .profile-label {
+        color: #9fa6ad;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+    .profile-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #ecf0f1;
+    }
+    .profile-section {
+        margin-bottom: 1.5rem;
+    }
+    .change-password-btn {
+        margin-top: 1.5rem;
+    }
+    .profile-icon {
+        color: #3498db;
+        margin-right: 8px;
+    }
+    .modal-content {
+        background: #23272b;
+        color: #fff;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="profile-card">
+                <div class="text-center mb-3">
+                    <img src="https://ui-avatars.com/api/?name={{ (user.display_name or user.name or user.username)|urlencode }}&background=3498db&color=fff&size=80" alt="Avatar" class="profile-avatar shadow">
+                    <h3 class="mt-2">{{ user.display_name or user.name or user.username }}</h3>
+                    <span class="badge bg-secondary text-capitalize">{{ user.role }}</span>
+                </div>
+                <div class="profile-section">
+                    <div class="profile-label"><i class="fas fa-envelope profile-icon"></i>Email</div>
+                    <div class="profile-value">{{ user.email }}</div>
+                </div>
+                {% if user.created_at %}
+                <div class="profile-section">
+                    <div class="profile-label"><i class="fas fa-calendar-alt profile-icon"></i>Joined</div>
+                    <div class="profile-value">{{ user.created_at.strftime('%Y-%m-%d') }}</div>
+                </div>
+                {% endif %}
+                {% if user.auth_provider != 'google' %}
+                <div class="profile-section">
+                    <button class="btn btn-outline-primary w-100 change-password-btn" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                        <i class="fas fa-key"></i> Change Password
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('dashboard.change_password') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="changePasswordModalLabel">Change Password</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="current_password" name="current_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" required minlength="8">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="8">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Change Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

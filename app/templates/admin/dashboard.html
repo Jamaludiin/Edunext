@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    /* Custom Admin Dashboard Styles */
+    .card {
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-dark);
+    }
+
+    .card-header {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem;
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+
+    .card-footer {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-top: 1px solid var(--border-color);
+        padding: 0.75rem 1.25rem;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table th {
+        border-top: none;
+        border-bottom: 2px solid var(--border-color);
+        color: var(--text-secondary);
+        font-weight: 500;
+        padding: 1rem;
+    }
+
+    .table td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .table-dark {
+        background-color: transparent;
+    }
+
+    .table-dark.table-striped > tbody > tr:nth-of-type(odd) {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    .table-dark.table-striped > tbody > tr:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+    }
+    .table-dark {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .text-white-75 {
+        color: rgba(255, 255, 255, 0.75) !important;
+    }
+
+    .text-lg {
+        font-size: 1.5rem;
+    }
+
+    .stretched-link::after {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1;
+        content: "";
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 px-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Admin Dashboard</h1>
+            <p class="text-secondary mb-0">System overview and statistics</p>
+        </div>
+    </div>
+
+    {% include "includes/flash_messages.html" %}
+
+    <!-- System stats -->
+    <div class="row justify-content-center">
+        <div class="col-md-3 mb-4">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="me-3">
+                            <div class="text-white-75 small">Total Users</div>
+                            <div class="text-lg fw-bold">{{ user_count }}</div>
+                        </div>
+                        <i class="fas fa-users fa-2x text-white-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{{ url_for('admin.users') }}">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add more stats cards here -->
+        <!-- Subjects Card -->
+        <div class="col-md-3 mb-4">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="me-3">
+                            <div class="text-white-75 small">Subjects</div>
+                            <div class="text-lg fw-bold">{{ subject_count }}</div>
+                        </div>
+                        <i class="fas fa-book fa-2x text-white-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{{ url_for('admin.subjects') }}">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents Card -->
+        <div class="col-md-3 mb-4">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="me-3">
+                            <div class="text-white-75 small">Documents</div>
+                            <div class="text-lg fw-bold">{{ document_count }}</div>
+                        </div>
+                        <i class="fas fa-file-pdf fa-2x text-white-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{{ url_for('admin.documents') }}">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <!-- Recent User Activity -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card bg-dark text-white mb-4">
+                <div class="card-header">
+                    <i class="fas fa-user me-1"></i>
+                    Recent Users
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in recent_users %}
+                                <tr>
+                                    <td>{{ user.name }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>{{ user.role }}</td>
+                                    <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{{ url_for('admin.users') }}">View All Users</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card bg-dark text-white mb-4">
+                <div class="card-header">
+                    <i class="fas fa-file-alt me-1"></i>
+                    Recent Documents
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Filename</th>
+                                    <th>Size</th>
+                                    <th>Upload Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in recent_documents %}
+                                <tr>
+                                    <td>{{ doc.original_filename }}</td>
+                                    <td>{{ (doc.file_size / 1024)|round(1) }} KB</td>
+                                    <td>{{ doc.upload_date.strftime('%Y-%m-%d') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{{ url_for('admin.documents') }}">View All
+                        Documents</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

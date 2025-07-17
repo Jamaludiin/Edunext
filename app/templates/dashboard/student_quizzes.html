@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Available Quizzes - Learning Assistant{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="display-5">Available Quizzes</h1>
+        <a href="{{ url_for('dashboard.student_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    {% include "includes/flash_messages.html" %}
+
+    {% if quizzes %}
+    <div class="row">
+        {% for quiz in quizzes %}
+        <div class="col-md-6 mb-4">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h5 class="card-title">{{ quiz.title }}</h5>
+                        <span class="badge bg-info">{{ quiz.subject.code }}</span>
+                    </div>
+                    <p class="card-text">{{ quiz.description }}</p>
+
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-question-circle"></i> {{ quiz.questions|length }} questions
+                        </small>
+                    </div>
+
+                    {% if attempts[quiz.id].count > 0 %}
+                    <div class="alert alert-secondary">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <small>Attempts: {{ attempts[quiz.id].count }}</small>
+                            </div>
+                            <div class="col-md-4">
+                                <small>Best Score: {{ attempts[quiz.id].best_score|round(1) }}%</small>
+                            </div>
+                            <div class="col-md-4">
+                                <small>Last: {{ attempts[quiz.id].last_attempt.start_time.strftime('%Y-%m-%d')
+                                    }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('dashboard.start_quiz', quiz_id=quiz.id) }}" class="btn btn-primary">
+                            {% if attempts[quiz.id].count > 0 %}
+                            <i class="fas fa-redo"></i> Attempt Again
+                            {% else %}
+                            <i class="fas fa-play"></i> Start Quiz
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <h4 class="alert-heading">No Quizzes Available</h4>
+        <p>There are no quizzes available for your enrolled subjects yet. Check back later or contact your instructor.
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{{ url_for('dashboard.quiz_history') }}" class="btn btn-info">
+            <i class="fas fa-history"></i> View Quiz History
+        </a>
+    </div>
+</div>
+{% endblock %}

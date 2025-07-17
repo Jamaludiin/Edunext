@@ -1,0 +1,462 @@
+{% extends "base.html" %}
+
+{% block title %}{{ quiz.title }} Questions{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    /* Layout & Spacing */
+    .question-grid {
+        display: grid;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .question-card {
+        background: var(--bg-dark);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .question-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.5rem;
+        background: var(--bg-darker);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .question-content {
+        padding: 1.5rem;
+    }
+
+    .question-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+        background: var(--bg-darker);
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Question Elements */
+    .question-meta {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .question-text {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        color: #e9ecef;
+        margin: 1rem 0;
+    }
+
+    .question-answers {
+        margin-top: 1.5rem;
+    }
+
+    .answer-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: var(--bg-dark);
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .answer-item.correct {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: #10b981;
+    }
+
+    /* Badges & Icons */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5em 0.75em;
+        font-weight: 500;
+        font-size: 0.875rem;
+        border-radius: 0.375rem;
+    }
+
+    .difficulty-badge {
+        background: linear-gradient(45deg, var(--bg-darker), var(--bg-dark));
+        border: 1px solid var(--border-color);
+    }
+
+    /* Buttons */
+    .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        border-radius: 0.375rem;
+        transition: all 0.2s;
+    }
+
+    .btn-icon i {
+        font-size: 0.875rem;
+    }
+
+    .btn-delete {
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid #ef4444;
+    }
+
+    .btn-delete:hover {
+        background: rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-edit {
+        color: #f59e0b;
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid #f59e0b;
+    }
+
+    .btn-edit:hover {
+        background: rgba(245, 158, 11, 0.2);
+    }
+    /* Text Styling */
+    .text-primary {
+        color: #5c7cfa !important;
+    }
+
+    .text-secondary {
+        color: #adb5bd !important;
+    }
+
+    .accordion-button {
+        color: #e9ecef;
+        font-weight: 500;
+    }
+
+    .accordion-button:not(.collapsed) {
+        color: #ffffff;
+    }
+
+    .question-text {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        color: #e9ecef;
+    }
+
+    .answer-text {
+        font-size: 1rem;
+        line-height: 1.5;
+        color: #e9ecef;
+    }
+
+    .badge {
+        font-weight: 500;
+        font-size: 0.875rem;
+        padding: 0.5em 0.75em;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #e9ecef;
+        margin-bottom: 1rem;
+    }
+
+    .list-group-item {
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+
+    .list-group-item-success {
+        color: #10b981 !important;
+    }
+
+    .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .modal-body p {
+        color: #e9ecef;
+        line-height: 1.6;
+    }
+    /* Custom Quiz Questions Styles */
+    .accordion-item {
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-dark);
+        margin-bottom: 1rem;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .accordion-button {
+        background-color: var(--bg-dark);
+        border: none;
+        padding: 1.25rem;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background-color: var(--bg-darker);
+        color: var(--text-primary);
+    }
+
+    .accordion-button::after {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+    }
+
+    .accordion-button:not(.collapsed)::after {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+    }
+
+    .accordion-body {
+        background-color: var(--bg-darker);
+        border-top: 1px solid var(--border-color);
+        padding: 1.25rem;
+    }
+
+    .form-check-input {
+        background-color: var(--bg-dark);
+        border-color: var(--border-color);
+    }
+
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .list-group-item {
+        background-color: var(--bg-dark);
+        border-color: var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .list-group-item-success {
+        background-color: rgba(var(--success-rgb), 0.2);
+        border-color: var(--success-color);
+        color: var(--success-color);
+    }
+
+    .action-buttons .btn {
+        padding: 0.375rem 0.75rem;
+    }
+
+    .action-buttons .btn:not(:last-child) {
+        margin-right: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 px-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">{{ quiz.title }}</h1>
+            <p class="text-secondary mb-0">
+                Subject: <span class="badge bg-primary">{{ subject.code }} - {{ subject.name }}</span>
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin.auto_generate_questions', quiz_id=quiz.id) }}" class="btn btn-primary">
+                <i class="fas fa-magic me-2"></i>Auto-Generate
+            </a>
+            <a href="{{ url_for('admin.create_question', quiz_id=quiz.id) }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add Question
+            </a>
+        </div>
+    </div>
+
+    {% include "includes/flash_messages.html" %}
+
+    {% if questions %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <h4 class="mb-0">Questions</h4>
+                    <span class="badge bg-primary">{{ questions|length }} Total</span>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="showAnswersToggle">
+                    <label class="form-check-label" for="showAnswersToggle">Show Answers</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="question-grid">
+        {% for question in questions %}
+        <div class="question-card" id="question-{{ question.id }}">
+            <div class="question-header">
+                <div class="question-meta">
+                    <span class="badge bg-secondary">ID: {{ question.id }}</span>
+                    <span class="badge difficulty-badge">
+                        <i class="fas fa-signal"></i>
+                        Level {{ question.difficulty_level }}
+                    </span>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('admin.edit_question', question_id=question.id) }}" class="btn-icon btn-edit">
+                        <i class="fas fa-edit"></i>
+                        <span>Edit</span>
+                    </a>
+                    <button type="button" class="btn-icon btn-delete" 
+                            onclick="confirmDelete('{{ question.id }}')">
+                        <i class="fas fa-trash-alt"></i>
+                        <span>Delete</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="question-content">
+                <div class="question-text">
+                    {{ question.text }}
+                </div>
+
+                <div class="question-answers" style="display: none;">
+                    <h6 class="text-secondary mb-3">Answers</h6>
+                    {% for answer in question.answers %}
+                    <div class="answer-item {% if answer.is_correct %}correct{% endif %}">
+                        <span class="answer-text">{{ answer.text }}</span>
+                        {% if answer.is_correct %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-check"></i>
+                            <span>Correct</span>
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card bg-primary bg-opacity-10 border-primary">
+        <div class="card-body text-center py-4">
+            <i class="fas fa-question-circle fa-3x mb-3 text-primary"></i>
+            <h4>No Questions Yet</h4>
+            <p class="mb-0">This quiz doesn't have any questions. Click the "Add Question" button to get started.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Delete Question Modal -->
+    <div class="modal fade" id="deleteQuestionModal" tabindex="-1" aria-labelledby="deleteQuestionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border border-secondary">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title text-light" id="deleteQuestionModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4 text-light">
+                    <div class="mb-4">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+                    </div>
+                    <h5 class="mb-3">Are you sure?</h5>
+                    <p class="text-secondary mb-0">This action will permanently delete the question and its associated answers. This cannot be undone.</p>
+                </div>
+                <div class="modal-footer border-top border-secondary justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">
+                        <i class="fas fa-trash-alt me-2"></i>Delete Question
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock content %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+        let questionIdToDelete = null;
+
+        // Show/Hide answers toggle
+        document.getElementById('showAnswersToggle').addEventListener('change', function() {
+            document.querySelectorAll('.question-answers').forEach(section => {
+                section.style.display = this.checked ? 'block' : 'none';
+            });
+        });
+
+        // Delete question handling
+        // Initialize delete modal
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteQuestionModal'));
+        
+        window.confirmDelete = function(questionId) {
+            questionIdToDelete = questionId;
+            deleteModal.show();
+        };
+
+        document.getElementById('confirmDelete').addEventListener('click', function() {
+            if (questionIdToDelete) {
+                // Function to handle deletion
+                function deleteQuestion(questionId) {
+                    fetch(`/admin/questions/${questionId}/delete`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ question_id: questionId }),
+                        credentials: 'same-origin'
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            // Close modal and refresh the page
+                            deleteModal.hide();
+                            window.location.reload();
+                        } else {
+                            deleteModal.hide();
+                            showAlert('error', data.message || 'Failed to delete question');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        deleteModal.hide();
+                        showAlert('error', 'An error occurred while deleting the question');
+                    });
+                }
+                
+                // Call the delete function when confirmed
+                if (questionIdToDelete) {
+                    deleteQuestion(questionIdToDelete);
+                }
+            }
+        });
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.question-grid'));
+            
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+    });
+    </script>
+{% endblock scripts %}

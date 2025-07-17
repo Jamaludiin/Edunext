@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}General Chat History{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 my-4">
+    <h1 class="chat-history-header">General Chat History</h1>
+    <p class="lead">This page will display your chat history not related to any specific subject.</p>
+
+    <div id="general-history-list" class="conversation-list">
+        <!-- History items will be loaded here via JavaScript -->
+        <p class="loading-message">Loading history...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const listElement = document.getElementById('general-history-list');
+
+        // Fetch general chat history from the API
+        fetch('{{ url_for("chat.general_chat_history") }}', {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.history && data.history.length > 0) {
+                    // Clear loading message
+                    listElement.innerHTML = '';
+
+                    // Create a list group for the history items
+                    const listGroup = document.createElement('div');
+                    listGroup.className = 'list-group';
+
+                    // Add each history item
+                    data.history.forEach(item => {
+                        const date = new Date(item.updated_at);
+                        const formattedDate = date.toLocaleString();
+
+                        const historyItem = document.createElement('a');
+                        historyItem.href = `{{ url_for("chat.general_chat_interface") }}?conversation_id=${item.conversation_id}`;
+                        historyItem.className = 'list-group-item list-group-item-action';
+
+                        historyItem.innerHTML = `
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">${item.title}</h5>
+                                <small>${formattedDate}</small>
+                            </div>
+                            <p class="mb-1"><strong>Type:</strong> General Knowledge</p>
+                            <small>
+                                <strong>Q:</strong> ${item.snippet.question}
+                                <br>
+                                <strong>A:</strong> ${item.snippet.answer}
+                            </small>
+                        `;
+
+                        listGroup.appendChild(historyItem);
+                    });
+
+                    // Add the list group to the container
+                    listElement.appendChild(listGroup);
+                } else {
+                    // No history found
+                    listElement.innerHTML = `
+                        <div class="alert alert-info">
+                            <p>No general chat history found.</p>
+                            <p>Start a new conversation by visiting the <a href="{{ url_for('chat.general_chat_interface') }}">General Chat</a> page.</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching general chat history:', error);
+                listElement.innerHTML = `
+                    <div class="alert alert-danger">
+                        <p>Error loading chat history. Please try again later.</p>
+                    </div>
+                `;
+            });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Subject Management - Admin Dashboard{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    /* Custom Admin Styles */
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table th {
+        border-top: none;
+        border-bottom: 2px solid var(--border-color);
+        color: var(--text-secondary);
+        font-weight: 500;
+        padding: 1rem;
+    }
+
+    .table td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .table {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+    }
+
+    .table tbody tr:hover td {
+        color: rgba(255, 255, 255, 1);
+    }
+
+    .table td {
+        background-color: var(--bg-darker);
+    }
+
+    .table-dark.table-striped > tbody > tr:nth-of-type(odd) {
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-group .btn {
+        padding: 0.375rem 0.75rem;
+    }
+
+    .btn-group .btn:not(:last-child) {
+        margin-right: 0.25rem;
+    }
+
+    .modal-content {
+        background-color: var(--bg-darker);
+        border: 1px solid var(--border-color);
+    }
+
+    .modal-header {
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-footer {
+        border-top: 1px solid var(--border-color);
+    }
+
+    .form-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-text {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .form-check-label {
+        color: var(--text-secondary);
+    }
+
+    .form-control {
+        background-color: var(--bg-dark);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .form-control:focus {
+        background-color: var(--bg-dark);
+        border-color: var(--primary-color);
+        color: var(--text-primary);
+        box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), 0.25);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 px-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Subject Management</h1>
+            <p class="text-secondary mb-0">Create and manage subjects for the AI learning system</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createSubjectModal">
+                <i class="fas fa-plus me-2"></i> Create Subject
+            </button>
+        </div>
+    </div>
+
+    <!-- Subjects Table -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">All Subjects</h5>
+                <span class="badge bg-primary">{{ subjects|length }} Total</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-dark table-bordered table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Documents</th>
+                            <th>Created By</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subject in subjects %}
+                        <tr>
+                            <td><strong>{{ subject.code }}</strong></td>
+                            <td>{{ subject.name }}</td>
+                            <td>
+                                {{ subject_stats[subject.id].doc_count if subject.id in subject_stats else 0 }}
+                                documents
+                                {% if subject_stats[subject.id].has_vector_db %}
+                                <span class="badge bg-success">Vector DB Ready</span>
+                                {% else %}
+                                <span class="badge bg-warning">Not Initialized</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ subject.creator.name }}</td>
+                            <td>
+                                {% if subject.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('admin.subject_documents', subject_id=subject.id) }}"
+                                        class="btn btn-sm btn-primary">
+                                        <i class="fas fa-file-alt"></i> Documents
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal"
+                                        data-bs-target="#editSubjectModal{{ subject.id }}">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <a href="{{ url_for('admin.subject_students', subject_id=subject.id) }}"
+                                        class="btn btn-sm btn-secondary">
+                                        <i class="fas fa-user-graduate"></i> Students
+                                    </a>
+                                    {% if subject_stats[subject.id].doc_count > 0 %}
+                                    <a href="{{ url_for('admin.subject_test_chat', subject_id=subject.id) }}"
+                                        class="btn btn-sm btn-info">
+                                        <i class="fas fa-comments"></i> Test Chat
+                                    </a>
+                                    {% endif %}
+                                    <a href="{{ url_for('admin.subject_chat', subject_id=subject.id) }}"
+                                        class="btn btn-sm btn-success">
+                                        <i class="fas fa-robot"></i> Chat Room
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger"
+                                        data-bs-toggle="modal" data-bs-target="#deleteSubjectModal{{ subject.id }}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Subject Modal -->
+<div class="modal fade" id="createSubjectModal" tabindex="-1" aria-labelledby="createSubjectModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createSubjectModalLabel">Create New Subject</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('admin.create_subject') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Subject Code</label>
+                        <input type="text" class="form-control" id="code" name="code" required>
+                        <div class="form-text">A unique identifier for the subject (e.g., CS101)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Subject Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Subject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Subject Modals -->
+{% for subject in subjects %}
+<div class="modal fade" id="editSubjectModal{{ subject.id }}" tabindex="-1"
+    aria-labelledby="editSubjectModalLabel{{ subject.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editSubjectModalLabel{{ subject.id }}">Edit Subject: {{ subject.code }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('admin.update_subject', subject_id=subject.id) }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="code{{ subject.id }}" class="form-label">Subject Code</label>
+                        <input type="text" class="form-control" id="code{{ subject.id }}" name="code"
+                            value="{{ subject.code }}" required>
+                        <div class="form-text">A unique identifier for the subject (e.g., CS101)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="name{{ subject.id }}" class="form-label">Subject Name</label>
+                        <input type="text" class="form-control" id="name{{ subject.id }}" name="name"
+                            value="{{ subject.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description{{ subject.id }}" class="form-label">Description</label>
+                        <textarea class="form-control" id="description{{ subject.id }}" name="description"
+                            rows="3">{{ subject.description }}</textarea>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_active{{ subject.id }}" name="is_active"
+                            {% if subject.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active{{ subject.id }}">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Subject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Delete Subject Confirmation Modals -->
+{% for subject in subjects %}
+<div class="modal fade" id="deleteSubjectModal{{ subject.id }}" tabindex="-1"
+    aria-labelledby="deleteSubjectModalLabel{{ subject.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteSubjectModalLabel{{ subject.id }}">Delete Subject: {{ subject.code }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Warning: This action cannot be undone!
+                </div>
+                <p>Are you sure you want to delete the subject <strong>{{ subject.code }}: {{ subject.name }}</strong>?</p>
+                <p>This will also delete:</p>
+                <ul>
+                    <li>All documents associated with this subject</li>
+                    <li>All student enrollments in this subject</li>
+                    <li>All chat history related to this subject</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('admin.delete_subject', subject_id=subject.id) }}" method="post" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Delete Subject</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,250 @@
+    {% extends "base.html" %}
+{% block title %}Manage Quizzes{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    /* Custom Quiz Management Styles */
+    .card {
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-dark);
+        transition: transform 0.2s;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+    }
+
+    .card-header {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem;
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+
+    .card-footer {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-top: 1px solid var(--border-color);
+        padding: 1rem;
+    }
+
+    .subject-header {
+        background-color: var(--bg-darker);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-select {
+        background-color: var(--bg-dark);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .form-select:focus {
+        background-color: var(--bg-dark);
+        border-color: var(--primary-color);
+        color: var(--text-primary);
+        box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), 0.25);
+    }
+
+    .btn-group .btn {
+        padding: 0.5rem 1rem;
+    }
+
+    .modal-content {
+        background-color: var(--bg-darker);
+        border: 1px solid var(--border-color);
+    }
+
+    .modal-header {
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-footer {
+        border-top: 1px solid var(--border-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 px-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Quiz Management</h1>
+            <p class="text-secondary mb-0">Create and manage quizzes for each subject</p>
+        </div>
+        <div>
+            <a href="{{ url_for('admin.create_quiz') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i> Create Quiz
+            </a>
+        </div>
+    </div>
+
+    {% include "includes/flash_messages.html" %}
+
+    {% if quizzes %}
+    <!-- Filter by subject -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <label for="subject-filter" class="form-label mb-md-0">Filter by Subject</label>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <select class="form-select" id="subject-filter">
+                            <option value="all">All Subjects</option>
+                            {% for subject in subjects %}
+                            <option value="{{ subject.id }}">{{ subject.code }} - {{ subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn btn-primary" type="button" id="filter-btn">
+                            <i class="fas fa-filter me-2"></i>Filter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quizzes grouped by subject -->
+    {% for subject, subject_quizzes in quizzes_by_subject.items() %}
+    <div class="subject-section mb-4" data-subject-id="{{ subject.id }}">
+        <div class="subject-header d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-0">
+                    <span class="text-primary">{{ subject.code }}</span> - {{ subject.name }}
+                </h4>
+            </div>
+            <span class="badge bg-primary">{{ subject_quizzes|length }} quizzes</span>
+        </div>
+
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-4">
+            {% for quiz in subject_quizzes %}
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0 text-primary">{{ quiz.title }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            {% if quiz.description %}
+                            {{ quiz.description|truncate(100) }}
+                            {% else %}
+                            <span class="text-muted">No description</span>
+                            {% endif %}
+                        </p>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-question-circle"></i>
+                                    {{ quiz.questions|length }} questions
+                                </span>
+                            </span>
+                            <small class="text-muted">Created {{ quiz.created_at.strftime('%Y-%m-%d') }}</small>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="btn-group w-100" role="group">
+                            <a href="{{ url_for('admin.quiz_questions', quiz_id=quiz.id) }}"
+                                class="btn btn-outline-primary">
+                                <i class="fas fa-list me-2"></i>Questions
+                            </a>
+                            <a href="{{ url_for('admin.edit_quiz', quiz_id=quiz.id) }}" class="btn btn-outline-warning">
+                                <i class="fas fa-edit me-2"></i>Edit
+                            </a>
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal"
+                                data-bs-target="#deleteQuizModal" data-quiz-id="{{ quiz.id }}"
+                                data-quiz-title="{{ quiz.title }}">
+                                <i class="fas fa-trash-alt me-2"></i>Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Delete Quiz Modal -->
+    <div class="modal fade" id="deleteQuizModal" tabindex="-1" aria-labelledby="deleteQuizModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteQuizModalLabel">Confirm Delete</h5>
+                    <button type="button" class="btn-close bg-light" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the quiz "<span id="quizTitleToDelete"></span>"?</p>
+                    <p class="text-danger">This will also delete all questions and student attempts associated with this
+                        quiz.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form id="deleteQuizForm" method="POST">
+                        <button type="submit" class="btn btn-danger">Delete Quiz</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card bg-primary bg-opacity-10 border-primary">
+        <div class="card-body text-center py-4">
+            <i class="fas fa-book-open fa-3x mb-3 text-primary"></i>
+            <h4>No Quizzes Yet</h4>
+            <p class="mb-0">There are no quizzes in the system. Click the "Create Quiz" button to get started.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="mt-4 text-center">
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle delete confirmation modal
+        const deleteQuizModal = document.getElementById('deleteQuizModal');
+        if (deleteQuizModal) {
+            deleteQuizModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const quizId = button.getAttribute('data-quiz-id');
+                const quizTitle = button.getAttribute('data-quiz-title');
+
+                document.getElementById('quizTitleToDelete').textContent = quizTitle;
+                document.getElementById('deleteQuizForm').action = "{{ url_for('admin.delete_quiz', quiz_id=0) }}".replace('0', quizId);
+            });
+        }
+
+        // Subject filter functionality
+        document.getElementById('filter-btn').addEventListener('click', function () {
+            const selectedSubjectId = document.getElementById('subject-filter').value;
+
+            document.querySelectorAll('.subject-section').forEach(section => {
+                if (selectedSubjectId === 'all' || section.getAttribute('data-subject-id') === selectedSubjectId) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+{% from 'bootstrap5/form.html' import render_form %}
+
+{% block title %}Login - Edunext{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .login-container {
+        max-width: 450px;
+        margin: 2rem auto;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .social-login {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #eee;
+    }
+
+    .btn-social {
+        width: 100%;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 16px;
+    }
+
+    .btn-social i {
+        margin-right: 8px;
+    }
+
+    .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .login-options {
+        margin-top: 1rem;
+        text-align: center;
+    }
+
+    /* Make all buttons full width */
+    .login-container .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Ensure form elements are full width */
+    .login-container .form-control {
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="login-container">
+        <div class="login-header">
+            <h2>Login</h2>
+            <p>Welcome back to Edunext</p>
+        </div>
+
+        <div id="login-error" class="alert alert-danger" style="display: none;"></div>
+        <div id="login-debug" class="alert alert-info" style="display: none;"></div>
+
+        <!-- Switch to manual form for better control -->
+        <form id="login-form" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+
+        <div class="text-end mb-3">
+            <a href="{{ url_for('auth.forgot_password') }}" class="text-muted">Forgot password?</a>
+        </div>
+
+        <div class="social-login">
+            <p class="text-center">Or sign in with</p>
+            <button id="google-login" class="btn btn-outline-secondary btn-social">
+                <i class="fab fa-google"></i> Google
+            </button>
+        </div>
+
+        <div class="login-options">
+            <p>Don't have an account? <a href="{{ url_for('auth.signup') }}">Sign up</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Firebase App (the core Firebase SDK) -->
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<!-- Firebase Auth -->
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+<!-- Font Awesome is already included in base.html, no need to include it again -->
+
+<script>
+    // Display diagnostic information about Firebase
+    console.log("Firebase script loading...");
+
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDC7iLO7PSj8OeE1CAt0Tcrv9iktzBtWS8",
+        authDomain: "learning-assistance-d4c04.firebaseapp.com",
+        projectId: "learning-assistance-d4c04",
+        storageBucket: "learning-assistance-d4c04.appspot.com",
+        messagingSenderId: "827127385983",
+        appId: "1:827127385983:web:90ab14939ffc1f9ac1944a",
+        measurementId: "G-1XCVV91CNX"
+    };
+
+    console.log("Firebase config:", firebaseConfig);
+
+    // Initialize Firebase with error handling
+    let firebaseApp = null;
+    try {
+        console.log("Initializing Firebase...");
+        // Check if Firebase is already initialized
+        if (firebase.apps.length === 0) {
+            firebaseApp = firebase.initializeApp(firebaseConfig);
+        } else {
+            firebaseApp = firebase.app();
+        }
+        console.log("Firebase initialized successfully", firebaseApp);
+
+        // Check if auth is available
+        if (firebase.auth) {
+            console.log("Firebase auth is available");
+        } else {
+            console.error("Firebase auth is not available!");
+            showError("Firebase authentication is not available. Please check your internet connection.");
+        }
+    } catch (error) {
+        console.error("Firebase initialization error:", error);
+        showError("Firebase initialization failed: " + error.message);
+    }
+
+    // Get elements
+    const loginForm = document.getElementById('login-form');
+    const googleBtn = document.getElementById('google-login');
+    const errorDiv = document.getElementById('login-error');
+
+    // Email/Password Login
+    loginForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        
+        console.log("Login form submitted");
+        console.log("Form exists:", !!document.getElementById('login-form'));
+        console.log("Email field exists:", !!document.getElementById('email'));
+        console.log("Password field exists:", !!document.getElementById('password'));
+
+        // Show loading
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        console.log("Submit button found:", !!submitBtn);
+        const originalBtnText = submitBtn ? submitBtn.innerHTML : 'Login';
+        
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+        }
+
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        console.log("Attempting email/password login for:", email);
+
+        // Log the specifics of what we're about to attempt
+        console.log("Firebase auth state before login:", firebase.auth().currentUser);
+        console.log("About to call signInWithEmailAndPassword with", email, "password length:", password.length);
+        
+        // Attempt Firebase authentication
+        firebase.auth().signInWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                console.log("Email login successful", userCredential);
+                // Get Firebase user
+                const user = userCredential.user;
+                console.log("User data:", { 
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName,
+                    emailVerified: user.emailVerified
+                });
+                
+                // Get ID token
+                return user.getIdToken(true); // Force refresh token
+            })
+            .then((idToken) => {
+                console.log("Got ID token from email login, length:", idToken.length);
+                console.log("Token first 10 chars:", idToken.substring(0, 10) + "...");
+
+                // First send token to email_login endpoint (not verify-token)
+                return fetch('/auth/email_login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        idToken: idToken
+                    })
+                });
+            })
+            .then(response => {
+                console.log("Server response status:", response.status);
+                if (!response.ok) {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Server response:", data);
+                if (data.success) {
+                    console.log("Authentication successful, redirecting to:", data.redirect);
+                    window.location.href = data.redirect;
+                } else {
+                    throw new Error(data.error || 'Authentication failed');
+                }
+            })
+            .catch((error) => {
+                console.error("Email/password login error:", error);
+                // Handle error
+                showError(error.message || 'Login failed. Please check your email and password.');
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+                
+                // Show detailed error for debugging
+                showDebug(`Error code: ${error.code}, Message: ${error.message}`);
+            });
+    });
+
+    // Google Login
+    googleBtn.addEventListener('click', function () {
+        console.log("Google login button clicked");
+
+        // Show loading state
+        googleBtn.disabled = true;
+        googleBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+
+        // Create a simple provider with just the essential scope
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope('email');
+
+        // Use Promise-based sign-in for better error handling
+        firebase.auth().signInWithPopup(provider)
+            .then((result) => {
+                console.log("Google sign-in successful", result);
+                // The signed-in user info
+                const user = result.user;
+                console.log("User details:", {
+                    displayName: user.displayName,
+                    email: user.email,
+                    uid: user.uid,
+                    providerId: user.providerId
+                });
+
+                return user.getIdToken();
+            })
+            .then((idToken) => {
+                console.log("Got ID token, length:", idToken.length);
+                console.log("Token prefix:", idToken.substring(0, 10) + "...");
+
+                // First try the debug endpoint to see what's happening with the token
+                console.log("Sending token to debug endpoint");
+                return fetch('/auth/token-debug', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        idToken: idToken
+                    })
+                })
+                    .then(response => response.json())
+                    .then(debugData => {
+                        console.log("Debug response:", debugData);
+
+                        // After debug, continue with the actual login
+                        console.log("Now trying actual login endpoint");
+                        return fetch('/auth/api/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token() }}'
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({
+                                idToken: idToken,
+                                provider: 'google'
+                            })
+                        });
+                    });
+            })
+            .then(response => {
+                console.log("Server response status:", response.status);
+                if (!response.ok) {
+                    console.error("Server response not OK:", response.status);
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Server response data:", data);
+                if (data.success) {
+                    console.log("Authentication successful, redirecting to dashboard");
+                    // Redirect based on user role
+                    if (data.user && data.user.role === 'admin') {
+                        window.location.href = '/admin/';
+                    } else {
+                        window.location.href = '/dashboard/';
+                    }
+                } else {
+                    throw new Error(data.error || 'Authentication failed');
+                }
+            })
+            .catch((error) => {
+                console.error("Google authentication error:", error);
+                // Handle errors here
+                const errorCode = error.code;
+                const errorMessage = error.message;
+                // The email of the user's account used
+                const email = error.email;
+                // The firebase.auth.AuthCredential type that was used
+                const credential = error.credential;
+
+                console.error({
+                    errorCode,
+                    errorMessage,
+                    email,
+                    credential
+                });
+
+                showError(`Authentication error: ${errorMessage}`);
+
+                // Reset button
+                googleBtn.disabled = false;
+                googleBtn.innerHTML = '<i class="fab fa-google"></i> Google';
+            });
+    });
+
+    // Display error message
+    function showError(message) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        console.error("Authentication error:", message);
+    }
+    
+    // Display debug message
+    function showDebug(message) {
+        const debugDiv = document.getElementById('login-debug');
+        debugDiv.textContent = message;
+        debugDiv.style.display = 'block';
+        console.log("Debug message:", message);
+    }
+
+    // Handle redirect result when the page loads after a redirect
+    firebase.auth().getRedirectResult()
+        .then((result) => {
+            console.log("Redirect result:", result);
+            if (result.user) {
+                console.log("User from redirect:", result.user);
+                return result.user.getIdToken();
+            }
+            return null;
+        })
+        .then((idToken) => {
+            if (!idToken) {
+                console.log("No token from redirect - normal page load");
+                return; // No redirect result, skip processing
+            }
+
+            console.log("Got token, sending to server");
+            // Send token to server
+            return fetch('/auth/verify-social', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+        })
+        .then(response => {
+            if (!response) return; // Skip if there was no token
+
+            if (!response.ok) {
+                console.error("Server response not OK:", response.status);
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+
+            return response.json();
+        })
+        .then(data => {
+            if (!data) return; // Skip if no response
+
+            console.log("Server response:", data);
+            if (data.success) {
+                console.log("Authentication successful, redirecting to:", data.next_url);
+                window.location.href = data.next_url;
+            } else {
+                throw new Error(data.error || 'Authentication failed');
+            }
+        })
+        .catch((error) => {
+            // Only show error if it's not just the initial page load
+            console.error("Authentication error:", error);
+            if (error.code && error.code !== 'auth/credential-already-in-use') {
+                showError(error.message);
+            }
+        });
+</script>
+{% endblock %}

@@ -1,0 +1,369 @@
+{% extends 'base.html' %}
+{% from 'bootstrap5/form.html' import render_form %}
+
+{% block title %}Sign Up - Edunext{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .signup-container {
+        max-width: 450px;
+        margin: 2rem auto;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .social-signup {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #eee;
+    }
+
+    .btn-social {
+        width: 100%;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 16px;
+    }
+
+    .btn-social i {
+        margin-right: 8px;
+    }
+
+    .signup-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .signup-options {
+        margin-top: 1rem;
+        text-align: center;
+    }
+
+    /* Make all buttons full width */
+    .signup-container .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Ensure form elements are full width */
+    .signup-container .form-control {
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="signup-container">
+        <div class="signup-header">
+            <h2>Create Account</h2>
+            <p>Join Edunext</p>
+        </div>
+
+        <div id="signup-error" class="alert alert-danger" style="display: none;"></div>
+
+        {{ render_form(form, id="signup-form") }}
+
+        <div class="social-signup">
+            <p class="text-center">Or sign up with</p>
+            <button id="google-signup" class="btn btn-outline-secondary btn-social">
+                <i class="fab fa-google"></i> Google
+            </button>
+        </div>
+
+        <div class="signup-options">
+            <p>Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Firebase App (the core Firebase SDK) -->
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<!-- Firebase Auth -->
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+<!-- Font Awesome is already included in base.html, no need to include it again -->
+
+<script>
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDC7iLO7PSj8OeE1CAt0Tcrv9iktzBtWS8",
+        authDomain: "learning-assistance-d4c04.firebaseapp.com",
+        projectId: "learning-assistance-d4c04",
+        storageBucket: "learning-assistance-d4c04.firebasestorage.app",
+        messagingSenderId: "827127385983",
+        appId: "1:827127385983:web:90ab14939ffc1f9ac1944a",
+        measurementId: "G-1XCVV91CNX"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Get elements
+    const signupForm = document.getElementById('signup-form');
+    const googleBtn = document.getElementById('google-signup');
+    const errorDiv = document.getElementById('signup-error');
+
+    // Email/Password Signup
+    signupForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        const name = document.getElementById('name').value;
+
+        // Client-side validation for password matching
+        if (password !== confirmPassword) {
+            showError("Passwords do not match");
+            return;
+        }
+
+        firebase.auth().createUserWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                // Update user profile
+                return userCredential.user.updateProfile({
+                    displayName: name
+                }).then(() => {
+                    return userCredential.user.getIdToken();
+                });
+            })
+            .then((idToken) => {
+                // Send token to server with extra user data
+                return fetch('/auth/verify-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        idToken: idToken,
+                        role: 'student',  // Always student by default
+                        name: name,
+                        is_signup: true   // Flag for signup
+                    })
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.next_url;
+                } else {
+                    throw new Error(data.error || 'Registration failed');
+                }
+            })
+            .catch((error) => {
+                // Handle error
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            });
+    });
+
+    // Google Signup
+    googleBtn.addEventListener('click', function () {
+        console.log("Google signup button clicked");
+
+        // Show loading state
+        googleBtn.disabled = true;
+        googleBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope('email');
+
+        // Use Promise-based sign-in for better error handling
+        firebase.auth().signInWithPopup(provider)
+            .then((result) => {
+                console.log("Google sign-in successful", result);
+                // The signed-in user info
+                const user = result.user;
+                console.log("User details:", {
+                    displayName: user.displayName,
+                    email: user.email,
+                    uid: user.uid,
+                    providerId: user.providerId
+                });
+
+                return user.getIdToken();
+            })
+            .then((idToken) => {
+                console.log("Got ID token, length:", idToken.length);
+                console.log("Token prefix:", idToken.substring(0, 10) + "...");
+
+                // First try the debug endpoint to see what's happening with the token
+                console.log("Sending token to debug endpoint");
+                return fetch('/auth/token-debug', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        idToken: idToken
+                    })
+                })
+                    .then(response => response.json())
+                    .then(debugData => {
+                        console.log("Debug response:", debugData);
+
+                        // After debug, continue with the actual login
+                        console.log("Now trying API login endpoint");
+                        return fetch('/auth/api/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token() }}'
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({
+                                idToken: idToken,
+                                provider: 'google',
+                                role: 'student',  // Always student for signup
+                                is_signup: true    // Flag for signup
+                            })
+                        });
+                    });
+            })
+            .then(response => {
+                console.log("Server response status:", response.status);
+                if (!response.ok) {
+                    console.error("Server response not OK:", response.status);
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Server response data:", data);
+                if (data.success) {
+                    console.log("Signup successful, redirecting to dashboard");
+                    // Redirect based on user role
+                    if (data.user && data.user.role === 'admin') {
+                        window.location.href = '/admin/';
+                    } else {
+                        window.location.href = '/dashboard/';
+                    }
+                } else {
+                    throw new Error(data.error || 'Signup failed');
+                }
+            })
+            .catch((error) => {
+                console.error("Google authentication error:", error);
+                // Handle errors here
+                const errorCode = error.code;
+                const errorMessage = error.message;
+                // The email of the user's account used
+                const email = error.email;
+                // The firebase.auth.AuthCredential type that was used
+                const credential = error.credential;
+
+                console.error({
+                    errorCode,
+                    errorMessage,
+                    email,
+                    credential
+                });
+
+                showError(`Authentication error: ${errorMessage}`);
+
+                // Reset button
+                googleBtn.disabled = false;
+                googleBtn.innerHTML = '<i class="fab fa-google"></i> Google';
+            });
+    });
+
+    // Display error message
+    function showError(message) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        console.error("Authentication error:", message);
+    }
+
+    // Add password match validation on input changes
+    const passwordField = document.getElementById('password');
+    const confirmPasswordField = document.getElementById('confirm_password');
+
+    function validatePasswordMatch() {
+        if (confirmPasswordField.value !== "" && passwordField.value !== confirmPasswordField.value) {
+            confirmPasswordField.setCustomValidity("Passwords don't match");
+        } else {
+            confirmPasswordField.setCustomValidity('');
+            // Also hide any existing error message
+            if (errorDiv.textContent.includes("Passwords do not match")) {
+                errorDiv.style.display = 'none';
+            }
+        }
+    }
+
+    if (passwordField && confirmPasswordField) {
+        passwordField.addEventListener('input', validatePasswordMatch);
+        confirmPasswordField.addEventListener('input', validatePasswordMatch);
+    }
+
+    // Handle redirect result when the page loads after a redirect
+    firebase.auth().getRedirectResult()
+        .then((result) => {
+            console.log("Redirect result:", result);
+            if (result.user) {
+                console.log("User from redirect:", result.user);
+                return result.user.getIdToken();
+            }
+            return null;
+        })
+        .then((idToken) => {
+            if (!idToken) {
+                console.log("No token from redirect - normal page load");
+                return; // No redirect result, skip processing
+            }
+
+            console.log("Got token, sending to server");
+            // Send token to server
+            return fetch('/auth/verify-social', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken,
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    role: 'student'  // Default role for social sign up
+                })
+            });
+        })
+        .then(response => {
+            if (!response) return; // Skip if there was no token
+
+            if (!response.ok) {
+                console.error("Server response not OK:", response.status);
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+
+            return response.json();
+        })
+        .then(data => {
+            if (!data) return; // Skip if no response
+
+            console.log("Server response:", data);
+            if (data.success) {
+                console.log("Authentication successful, redirecting to:", data.next_url);
+                window.location.href = data.next_url;
+            } else {
+                throw new Error(data.error || 'Authentication failed');
+            }
+        })
+        .catch((error) => {
+            // Only show error if it's not just the initial page load
+            console.error("Authentication error:", error);
+            if (error.code && error.code !== 'auth/credential-already-in-use') {
+                showError(error.message);
+            }
+        });
+</script>
+{% endblock %}

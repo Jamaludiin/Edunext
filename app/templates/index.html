@@ -1,0 +1,351 @@
+{% extends 'base.html' %}
+
+{% block title %}Edunext - Personalized Education{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .hero {
+        color: white;
+        padding: 5rem 0;
+        margin-bottom: 3rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    #hero-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+    }
+
+    .hero h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+    }
+
+    .hero p {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #007bff;
+    }
+
+    .feature-card {
+        padding: 2rem;
+        border-radius: 10px;
+        border: 1px solid white;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s;
+        height: 100%;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-10px);
+    }
+
+    .testimonial {
+        background-color: #f8f9fa;
+        padding: 4rem 0;
+        margin: 3rem 0;
+    }
+
+    .testimonial-card {
+        background-color: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .student-profile {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 1rem;
+    }
+
+    .cta-section {
+        padding: 5rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <canvas id="hero-canvas"></canvas>
+    <div class="container" style="position: relative; z-index: 1;">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1>Edunext for MSU Students</h1>
+                <p>Transform your learning experience with personalized AI assistance tailored to your needs.</p>
+                <div>
+                    <a href="{{ url_for('auth.signup') }}" class="btn btn-light btn-lg me-2">Sign Up</a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-lg">Log In</a>
+                </div>
+            </div>
+            <div class="col-md-6 text-center">
+                <img src="{{ url_for('static', filename='img/hero-illustration.svg') }}" alt="AI Learning"
+                    class="img-fluid" style="max-height: 400px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="container">
+    <h2 class="text-center mb-5">Key Features</h2>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="feature-card">
+                <div class="text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3>AI Chatbot</h3>
+                    <p>Get instant answers to your questions from our AI tutor powered by Retrieval-Augmented
+                        Generation.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="feature-card">
+                <div class="text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h3>Knowledge Base</h3>
+                    <p>Upload your course materials and study resources to personalize your learning assistance.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="feature-card">
+                <div class="text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Progress Tracking</h3>
+                    <p>Track your learning progress and get personalized recommendations for improvement.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-4 mb-4">
+            <div class="feature-card">
+                <div class="text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <h3>Adaptive Quizzes</h3>
+                    <p>Test your knowledge with quizzes that adapt to your skill level and learning pace.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="feature-card">
+                <div class="text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>Smart Recommendations</h3>
+                    <p>Receive personalized study material recommendations based on your interests and needs.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="feature-card">
+                <div class="text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <h3>Multi-Role System</h3>
+                    <p>Separate interfaces and capabilities for students and administrators.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="container my-5">
+    <h2 class="text-center mb-5">How It Works</h2>
+
+    <div class="row align-items-center mb-5">
+        <div class="col-md-6">
+            <h3>1. Upload Your Study Materials</h3>
+            <p>Start by uploading your lecture notes, textbooks, and study materials. Our system processes these
+                documents and makes them accessible to the AI assistant.</p>
+        </div>
+        <div class="col-md-6 text-center">
+            <i class="fas fa-cloud-upload-alt" style="font-size: 5rem; color: #007bff;"></i>
+        </div>
+    </div>
+
+    <div class="row align-items-center mb-5">
+        <div class="col-md-6 text-center order-md-1 order-2">
+            <i class="fas fa-comments" style="font-size: 5rem; color: #007bff;"></i>
+        </div>
+        <div class="col-md-6 order-md-2 order-1">
+            <h3>2. Ask Questions to the AI</h3>
+            <p>Ask the AI questions about your study material. The assistant uses advanced Retrieval-Augmented
+                Generation to find the most relevant information from your uploaded documents.</p>
+        </div>
+    </div>
+
+    <div class="row align-items-center">
+        <div class="col-md-6">
+            <h3>3. Track Your Progress</h3>
+            <p>Monitor your learning progress through the dashboard. Take quizzes to test your knowledge and identify
+                areas for improvement.</p>
+        </div>
+        <div class="col-md-6 text-center">
+            <i class="fas fa-chart-bar" style="font-size: 5rem; color: #007bff;"></i>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="cta-section">
+    <div class="container text-center">
+        <h2 class="mb-4">Ready to Transform Your Learning Experience?</h2>
+        <p class="lead mb-4">Join thousands of MSU students who are already benefiting from our AI-powered learning
+            assistance.</p>
+        <a href="{{ url_for('auth.signup') }}" class="btn btn-primary btn-lg px-5 py-3">Get Started Today</a>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Set up the scene
+    const canvas = document.getElementById('hero-canvas');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x2a3492); // Dark blue background
+    
+    const sizes = {
+      width: canvas.clientWidth,
+      height: canvas.clientHeight
+    };
+    
+    // Create camera
+    const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000);
+    camera.position.z = 20;
+    scene.add(camera);
+    
+    // Create renderer
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setSize(sizes.width, sizes.height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    
+    // Create particles for stars/knowledge representation
+    const particlesGeometry = new THREE.BufferGeometry();
+    const particlesCount = 1000;
+    
+    const posArray = new Float32Array(particlesCount * 3);
+    for(let i = 0; i < particlesCount * 3; i++) {
+      posArray[i] = (Math.random() - 0.5) * 50;
+    }
+    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    
+    // Materials
+    const particlesMaterial = new THREE.PointsMaterial({
+      size: 0.15,
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.8
+    });
+    
+    // Create the particle system
+    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+    scene.add(particlesMesh);
+    
+    // Create a pulsing orb (AI representation)
+    const orbGeometry = new THREE.SphereGeometry(4, 32, 32);
+    const orbMaterial = new THREE.MeshStandardMaterial({
+      color: 0x00bcd4,
+      metalness: 0.3,
+      roughness: 0.4,
+      emissive: 0x00bcd4,
+      emissiveIntensity: 0.5
+    });
+    const orb = new THREE.Mesh(orbGeometry, orbMaterial);
+    orb.position.set(-10, 0, -10); // Position it to the side
+    scene.add(orb);
+    
+    // Create brain/network structure
+    const torusGeometry = new THREE.TorusKnotGeometry(6, 1, 100, 16);
+    const torusMaterial = new THREE.MeshStandardMaterial({
+      color: 0x007bff,
+      metalness: 0.7,
+      roughness: 0.2,
+      wireframe: true
+    });
+    const torusKnot = new THREE.Mesh(torusGeometry, torusMaterial);
+    torusKnot.position.set(10, 0, -20);
+    scene.add(torusKnot);
+    
+    // Add lights
+    const pointLight = new THREE.PointLight(0xffffff, 1);
+    pointLight.position.set(0, 10, 10);
+    scene.add(pointLight);
+    
+    const ambientLight = new THREE.AmbientLight(0x404040, 1);
+    scene.add(ambientLight);
+    
+    // Animation
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      particlesMesh.rotation.y += 0.0005;
+      particlesMesh.rotation.x += 0.0001;
+      
+      orb.rotation.y += 0.01;
+      orb.position.y = Math.sin(Date.now() * 0.001) * 1.5;
+      orb.scale.x = orb.scale.y = orb.scale.z = 1 + Math.sin(Date.now() * 0.002) * 0.1;
+      
+      torusKnot.rotation.x += 0.003;
+      torusKnot.rotation.y += 0.002;
+      
+      renderer.render(scene, camera);
+    }
+    animate();
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      // Update sizes
+      sizes.width = canvas.clientWidth;
+      sizes.height = canvas.clientHeight;
+      
+      // Update camera
+      camera.aspect = sizes.width / sizes.height;
+      camera.updateProjectionMatrix();
+      
+      // Update renderer
+      renderer.setSize(sizes.width, sizes.height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    });
+  });
+</script>
+{% endblock %}

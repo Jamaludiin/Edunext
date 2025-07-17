@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block title %}Firebase Authentication Debug{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .debug-section {
+        margin-bottom: 2rem;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        background-color: #f8f9fa;
+    }
+
+    .section-title {
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .debug-item {
+        margin-bottom: 0.5rem;
+    }
+
+    .success {
+        color: #28a745;
+    }
+
+    .error {
+        color: #dc3545;
+    }
+
+    pre {
+        background-color: #f1f1f1;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Firebase Authentication Debug</h1>
+
+    <div class="alert alert-info">
+        <strong>Current time:</strong> {{ debug_info.server_time }}
+    </div>
+
+    <!-- Firebase Initialization Status -->
+    <div class="debug-section">
+        <h3 class="section-title">Firebase Status</h3>
+        <div class="debug-item">
+            <strong>Firebase Initialized:</strong>
+            {% if debug_info.firebase_initialized %}
+            <span class="success"><i class="fas fa-check-circle"></i> Yes</span>
+            {% else %}
+            <span class="error"><i class="fas fa-times-circle"></i> No</span>
+            {% endif %}
+        </div>
+        <div class="debug-item">
+            <strong>Firebase Apps Count:</strong> {{ debug_info.firebase_apps_count }}
+        </div>
+    </div>
+
+    <!-- Service Account Credentials -->
+    <div class="debug-section">
+        <h3 class="section-title">Firebase Admin SDK Credentials</h3>
+        <div class="debug-item">
+            <strong>Credentials Path:</strong> {{ debug_info.firebase_admin_sdk_path }}
+        </div>
+        <div class="debug-item">
+            <strong>File Exists:</strong>
+            {% if debug_info.file_exists %}
+            <span class="success"><i class="fas fa-check-circle"></i> Yes</span>
+            {% else %}
+            <span class="error"><i class="fas fa-times-circle"></i> No</span>
+            {% endif %}
+        </div>
+        <div class="debug-item">
+            <strong>Credentials Valid:</strong>
+            {% if debug_info.credentials_valid %}
+            <span class="success"><i class="fas fa-check-circle"></i> Yes</span>
+            {% else %}
+            <span class="error"><i class="fas fa-times-circle"></i> No</span>
+            {% endif %}
+        </div>
+        <div class="debug-item">
+            <strong>Credentials Content:</strong>
+            <pre>{{ debug_info.credentials_content | tojson(indent=2) }}</pre>
+        </div>
+    </div>
+
+    <!-- OAuth Config -->
+    <div class="debug-section">
+        <h3 class="section-title">OAuth Configuration</h3>
+        <div class="debug-item">
+            <strong>Web Client ID:</strong>
+            {% if debug_info.oauth_config.web_client_id %}
+            {{ debug_info.oauth_config.web_client_id }}
+            {% else %}
+            <span class="error"><i class="fas fa-exclamation-triangle"></i> Not set</span>
+            {% endif %}
+        </div>
+        <div class="debug-item">
+            <strong>Web API Key:</strong>
+            {% if debug_info.oauth_config.web_api_key %}
+            {{ debug_info.oauth_config.web_api_key }}
+            {% else %}
+            <span class="error"><i class="fas fa-exclamation-triangle"></i> Not set</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Application Environment -->
+    <div class="debug-section">
+        <h3 class="section-title">Application Environment</h3>
+        <div class="debug-item">
+            <strong>Debug Mode:</strong> {{ debug_info.app_environment.debug }}
+        </div>
+        <div class="debug-item">
+            <strong>Environment:</strong> {{ debug_info.app_environment.env }}
+        </div>
+        <div class="debug-item">
+            <strong>Testing:</strong> {{ debug_info.app_environment.testing }}
+        </div>
+        <div class="debug-item">
+            <strong>Host:</strong> {{ debug_info.app_environment.host }}
+        </div>
+        <div class="debug-item">
+            <strong>URL Root:</strong> {{ debug_info.app_environment.url_root }}
+        </div>
+    </div>
+
+    <!-- Database Users -->
+    <div class="debug-section">
+        <h3 class="section-title">Database Users</h3>
+        <div class="debug-item">
+            <strong>User Count:</strong> {{ debug_info.users_count }}
+        </div>
+    </div>
+
+    <!-- Firebase Users -->
+    <div class="debug-section">
+        <h3 class="section-title">Firebase Users</h3>
+        {% if debug_info.auth_error %}
+        <div class="alert alert-danger">
+            <strong>Error:</strong> {{ debug_info.auth_error }}
+        </div>
+        {% elif debug_info.firebase_users %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>UID</th>
+                    <th>Email</th>
+                    <th>Provider IDs</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in debug_info.firebase_users %}
+                <tr>
+                    <td>{{ user.uid }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.provider_id | join(', ') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="alert alert-warning">No Firebase users found.</div>
+        {% endif %}
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> Back to Login
+        </a>
+    </div>
+</div>
+{% endblock %}

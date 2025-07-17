@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Your Documents - Edunext{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .document-table {
+        margin-top: 2rem;
+    }
+
+    .document-card {
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .document-title {
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .document-info {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+
+    .document-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Your Documents</h2>
+            <p class="lead">View and manage your documents used by the Edunext</p>
+            <p class="mb-4">You can upload new documents directly from the chat interface using the upload button.</p>
+
+            <!-- Existing Documents -->
+            <div class="document-table">
+                {% if documents %}
+                <div class="row">
+                    {% for document in documents %}
+                    <div class="col-md-4">
+                        <div class="card document-card">
+                            <div class="card-body">
+                                <div class="document-title">
+                                    <i class="far fa-file-pdf"></i> {{ document.original_filename }}
+                                </div>
+                                <div class="document-info">
+                                    <div>Uploaded: {{ document.upload_date.strftime('%Y-%m-%d %H:%M') }}</div>
+                                    <div>Size: {{ (document.file_size / 1024)|round|int }} KB</div>
+                                </div>
+                                {% if document.description %}
+                                <div class="mt-2">{{ document.description }}</div>
+                                {% endif %}
+                                <div class="document-actions mt-3">
+                                    <form action="{{ url_for('dashboard.delete_document', document_id=document.id) }}"
+                                        method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Are you sure you want to delete this document?')">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    You haven't uploaded any documents yet. You can upload documents from the chat interface.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

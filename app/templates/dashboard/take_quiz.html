@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}Taking Quiz: {{ quiz.title }} - Learning Assistant{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .question-card {
+        margin-bottom: 2rem;
+    }
+
+    .answer-option {
+        margin-bottom: 0.5rem;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .answer-option:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .question-navigation {
+        position: sticky;
+        top: 80px;
+    }
+
+    .timer-box {
+        font-size: 1.5rem;
+        font-weight: bold;
+        padding: 10px;
+        border-radius: 5px;
+        background-color: rgba(0, 0, 0, 0.2);
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">{{ quiz.title }}</h1>
+        <span class="badge bg-info">{{ quiz.subject.code }} - {{ quiz.subject.name }}</span>
+    </div>
+
+    {% include "includes/flash_messages.html" %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <form id="quizForm" method="POST" action="{{ url_for('dashboard.take_quiz', attempt_id=attempt.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% for question in questions %}
+                <div id="question-{{ question.id }}" class="card bg-dark text-white question-card">
+                    <div class="card-header d-flex justify-content-between">
+                        <span>Question {{ loop.index }} of {{ questions|length }}</span>
+                        <span
+                            class="badge {% if question.difficulty_level <= 2 %}bg-success{% elif question.difficulty_level == 3 %}bg-info{% else %}bg-warning{% endif %}">
+                            Difficulty: {{ question.difficulty_level }}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ question.text }}</h5>
+
+                        <div class="answers mt-4">
+                            {% for answer in question.answers %}
+                            <div class="form-check answer-option">
+                                <input class="form-check-input" type="radio" name="question_{{ question.id }}"
+                                    id="answer_{{ answer.id }}" value="{{ answer.id }}">
+                                <label class="form-check-label" for="answer_{{ answer.id }}">
+                                    {{ answer.text }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-paper-plane"></i> Submit Quiz
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-md-4">
+            <div class="question-navigation">
+                <div class="timer-box" id="timer">
+                    <i class="fas fa-clock"></i> <span id="timeDisplay">00:00:00</span>
+                </div>
+
+                <div class="card bg-dark text-white mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Question Navigation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for question in questions %}
+                            <a href="#question-{{ question.id }}" class="btn btn-outline-secondary question-nav-btn"
+                                data-question-id="{{ question.id }}">
+                                {{ loop.index }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card bg-dark text-white">
+                    <div class="card-header">
+                        <h5 class="mb-0">Quiz Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><strong>Total Questions:</strong> {{ questions|length }}</li>
+                            <li><strong>Subject:</strong> {{ quiz.subject.name }}</li>
+                            <li><strong>Start Time:</strong> {{ attempt.start_time.strftime('%Y-%m-%d %H:%M') }}</li>
+                        </ul>
+
+                        <div class="alert alert-warning mt-3">
+                            <small>
+                                <i class="fas fa-exclamation-triangle"></i> Don't refresh or leave this page, as your
+                                progress won't be saved until submission.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize timer
+        const startTime = new Date('{{ attempt.start_time.isoformat() }}Z').getTime();
+        const timerElement = document.getElementById('timeDisplay');
+
+        function updateTimer() {
+            const currentTime = new Date().getTime();
+            const elapsedTime = currentTime - startTime;
+
+            // Calculate hours, minutes, seconds
+            const hours = Math.floor(elapsedTime / (1000 * 60 * 60));
+            const minutes = Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((elapsedTime % (1000 * 60)) / 1000);
+
+            // Display time
+            timerElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Update timer every second
+        updateTimer();
+        setInterval(updateTimer, 1000);
+
+        // Track answer selection
+        const navButtons = document.querySelectorAll('.question-nav-btn');
+        const radioInputs = document.querySelectorAll('input[type="radio"]');
+
+        radioInputs.forEach(input => {
+            input.addEventListener('change', function () {
+                // Get the question ID from the name attribute (e.g., question_1)
+                const questionId = this.name.split('_')[1];
+
+                // Find and update the corresponding nav button
+                const navBtn = document.querySelector(`.question-nav-btn[data-question-id="${questionId}"]`);
+                if (navBtn) {
+                    navBtn.classList.remove('btn-outline-secondary');
+                    navBtn.classList.add('btn-success');
+                }
+            });
+        });
+
+        // Form submission confirmation
+        const quizForm = document.getElementById('quizForm');
+        quizForm.addEventListener('submit', function (e) {
+            const isConfirmed = confirm('Are you sure you want to submit your quiz? You cannot change your answers after submission.');
+            if (!isConfirmed) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

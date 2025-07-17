@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Auto-Generate Questions - {{ quiz.title }}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .spinner-container {
+        text-align: center;
+    }
+
+    .spinner-border {
+        width: 4rem;
+        height: 4rem;
+    }
+
+    .generation-status {
+        margin-top: 1rem;
+        font-size: 1.2rem;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="display-5">Auto-Generate Questions</h1>
+            <p class="text-muted">
+                Quiz: <span class="text-white">{{ quiz.title }}</span> |
+                Subject: <span class="badge bg-info">{{ subject.code }} - {{ subject.name }}</span>
+            </p>
+        </div>
+    </div>
+
+    {% include "includes/flash_messages.html" %}
+
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card bg-dark text-white">
+                <div class="card-body">
+                    {% if has_vector_db %}
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle"></i> How it works:</h5>
+                        <p>
+                            This feature uses RAG (Retrieval Augmented Generation) to create questions based on subject
+                            knowledge documents.
+                            The system will analyze the documents and generate quiz questions at the specified
+                            difficulty level.
+                        </p>
+                        <p>
+                            <strong>Note:</strong> Generation may take 30-60 seconds depending on the number of
+                            questions and document size.
+                            Please be patient while the AI works its magic!
+                        </p>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h5><i class="fas fa-lightbulb"></i> Tips for better questions:</h5>
+                        <ul>
+                            <li>Start with a smaller number of questions (3-5) for faster generation</li>
+                            <li>Match difficulty level to your course requirements</li>
+                            <li>Generated questions are based on document content - ensure your subject has
+                                comprehensive materials</li>
+                            <li>You can edit any questions after generation if needed</li>
+                        </ul>
+                    </div>
+
+                    <form id="generateForm" method="POST"
+                        action="{{ url_for('admin.auto_generate_questions', quiz_id=quiz.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="num_questions" class="form-label">Number of Questions to Generate</label>
+                            <input type="number" class="form-control bg-dark text-white" id="num_questions"
+                                name="num_questions" min="1" max="20" value="5">
+                            <small class="form-text text-muted">Maximum 20 questions per generation</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="difficulty_level" class="form-label">Difficulty Level</label>
+                            <select class="form-select bg-dark text-white" id="difficulty_level"
+                                name="difficulty_level">
+                                <option value="1">Very Easy</option>
+                                <option value="2">Easy</option>
+                                <option value="3" selected>Medium</option>
+                                <option value="4">Hard</option>
+                                <option value="5">Very Hard</option>
+                            </select>
+                            <small class="form-text text-muted">
+                                1: Basic recall, 2: Simple understanding, 3: Application, 4: Analysis, 5: Deep
+                                understanding
+                            </small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="generateBtn">
+                                <i class="fas fa-magic"></i> Generate Questions
+                            </button>
+                            <a href="{{ url_for('admin.quiz_questions', quiz_id=quiz.id) }}"
+                                class="btn btn-outline-secondary">
+                                <i class="fas fa-times-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <h5><i class="fas fa-exclamation-triangle"></i> No Knowledge Base Available</h5>
+                        <p>
+                            This subject doesn't have any knowledge documents with vector embeddings.
+                            Please upload documents for this subject first before generating questions.
+                        </p>
+                        <a href="{{ url_for('admin.subject_documents', subject_id=subject.id) }}"
+                            class="btn btn-info mt-2">
+                            <i class="fas fa-file-upload"></i> Manage Subject Documents
+                        </a>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="{{ url_for('admin.quiz_questions', quiz_id=quiz.id) }}"
+                            class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Questions
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner-container">
+        <div class="spinner-border text-light" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="generation-status" id="generationStatus">
+            Initializing question generation...
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('generateForm');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const statusElement = document.getElementById('generationStatus');
+        const generateBtn = document.getElementById('generateBtn');
+
+        if (form) {
+            form.addEventListener('submit', function () {
+                // Show loading overlay
+                loadingOverlay.style.display = 'flex';
+
+                // Disable the button
+                generateBtn.disabled = true;
+
+                // Update status messages
+                const numQuestions = document.getElementById('num_questions').value;
+                const difficultyLevel = document.getElementById('difficulty_level').options[document.getElementById('difficulty_level').selectedIndex].text;
+
+                // Simulate progress updates
+                setTimeout(() => {
+                    statusElement.textContent = `Retrieving relevant content from knowledge base...`;
+                }, 2000);
+
+                setTimeout(() => {
+                    statusElement.textContent = `Analyzing content and formulating questions...`;
+                }, 5000);
+
+                setTimeout(() => {
+                    statusElement.textContent = `Generating ${numQuestions} questions at ${difficultyLevel} level...`;
+                }, 10000);
+
+                setTimeout(() => {
+                    statusElement.textContent = `Creating answer options for each question...`;
+                }, 15000);
+
+                setTimeout(() => {
+                    statusElement.textContent = `Almost done! Saving questions to database...`;
+                }, 20000);
+            });
+        }
+    });
+</script>
+{% endblock %}

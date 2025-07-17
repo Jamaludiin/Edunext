@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard - Edunext{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .dashboard-header {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        color: white;
+    }
+
+    .dashboard-card {
+        height: 100%;
+        transition: transform 0.3s;
+        background-color: #2d2d2d;
+        border: 1px solid #404040;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .dashboard-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: #3498db;
+    }
+
+    .dashboard-stats {
+        background-color: #2d2d2d;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        border: 1px solid #404040;
+    }
+
+    .stat-card {
+        background-color: #363636;
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        border: 1px solid #404040;
+        color: white;
+    }
+
+    .stat-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #3498db;
+    }
+
+    .stat-label {
+        color: #a0a0a0;
+        font-size: 0.9rem;
+    }
+
+    .recent-activity {
+        margin-top: 2rem;
+    }
+
+    .activity-item {
+        padding: 1rem;
+        border-bottom: 1px solid #404040;
+        background-color: #2d2d2d;
+        color: white;
+    }
+
+    .activity-icon {
+        margin-right: 0.5rem;
+    }
+
+    .activity-date {
+        color: #a0a0a0;
+        font-size: 0.8rem;
+    }
+
+    .card {
+        background-color: #2d2d2d;
+        border: 1px solid #404040;
+    }
+
+    .card-body {
+        color: white;
+    }
+
+    .list-group-item {
+        background-color: #2d2d2d;
+        border-color: #404040;
+        color: white;
+    }
+
+    .alert-success {
+        background-color: #2d4d2d;
+        border-color: #285e28;
+        color: #98c498;
+    }
+
+    .alert-warning {
+        background-color: #4d432d;
+        border-color: #5e4a28;
+        color: #c4b498;
+    }
+
+    h4 {
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+
+    .lead {
+        color: #a0a0a0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div class="container-fluid px-4">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h2>Welcome, {{ user.name }}!</h2>
+                <p class="lead">Your personalized learning dashboard</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <a href="{{ url_for('dashboard.upload_documents') }}" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> Upload Documents
+                </a>
+                {% if has_registered_subjects %}
+                <a href="{{ url_for('chat.chat_interface') }}" class="btn btn-success ms-2">
+                    <i class="fas fa-comments"></i> Subject Chat
+                </a>
+                {% else %}
+                <a href="{{ url_for('chat.general_chat_interface') }}" class="btn btn-success ms-2">
+                    <i class="fas fa-comments"></i> General Chat
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4">
+    <!-- Document Status Alert -->
+    {% if has_vector_db %}
+    <div class="alert alert-success mb-4">
+        <i class="fas fa-check-circle me-2"></i> <strong>AI Ready!</strong> Your AI assistant is ready to answer
+        questions based on available documents.
+    </div>
+    {% else %}
+    <div class="alert alert-warning mb-4">
+        <i class="fas fa-exclamation-triangle me-2"></i> <strong>AI Needs Documents</strong>
+        <p class="mb-0">Please upload documents to enable AI-powered assistance. You can still access subject-specific
+            knowledge if your instructor has uploaded relevant materials.</p>
+        <a href="{{ url_for('dashboard.upload_documents') }}" class="btn btn-primary btn-sm mt-2">
+            <i class="fas fa-upload"></i> Upload Documents
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Dashboard Statistics -->
+    <div class="dashboard-stats">
+        <h4 class="mb-4">Learning Statistics</h4>
+
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="stat-card">
+                    <div class="stat-icon text-primary">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="stat-value">{{ documents|length }}</div>
+                    <div class="stat-label">Documents Uploaded</div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+                <div class="stat-card">
+                    <div class="stat-icon text-success">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <div class="stat-value">{{ (history_subjects|default([])|length) + (history_general|default([])|length) }}</div>
+                    <div class="stat-label">Chat Sessions</div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+                <div class="stat-card">
+                    <div class="stat-icon text-warning">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="stat-value">{{ user.quiz_attempts|default([])|length }}</div>
+                    <div class="stat-label">Quizzes Completed</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Access Cards -->
+    <h4>Learning Tools</h4>
+    <div class="row mb-4">
+        <div class="col-md-4 mb-4">
+            <div class="card dashboard-card">
+                <div class="card-body text-center">
+                    <div class="dashboard-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h5>Chat Assistant</h5>
+                    <p>Ask questions and get immediate help from our AI tutor.</p>
+                    {% if has_registered_subjects %}
+                    <a href="{{ url_for('chat.chat_interface') }}" class="btn btn-primary">Subject Chat</a>
+                    {% else %}
+                    <a href="{{ url_for('chat.general_chat_interface') }}" class="btn btn-primary">General Chat</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card dashboard-card">
+                <div class="card-body text-center">
+                    <div class="dashboard-icon">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h5>Knowledge Base</h5>
+                    <p>Manage your learning materials and course documents.</p>
+                    <a href="{{ url_for('dashboard.upload_documents') }}" class="btn btn-primary">View Documents</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card dashboard-card">
+                <div class="card-body text-center">
+                    <div class="dashboard-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <h5>Quizzes</h5>
+                    <p>Test your knowledge with interactive quizzes for your subjects.</p>
+                    <a href="{{ url_for('dashboard.student_quizzes') }}" class="btn btn-primary">Take Quizzes</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="recent-activity">
+        <h4>Recent Activity</h4>
+        <div class="card">
+            <div class="list-group list-group-flush">
+                {% if documents %}
+                {% for document in documents[:3] %}
+                <div class="list-group-item activity-item">
+                    <div>
+                        <span class="activity-icon">
+                            <i class="fas fa-file-upload text-primary"></i>
+                        </span>
+                        Uploaded document: <strong>{{ document.original_filename }}</strong>
+                    </div>
+                    <div class="activity-date">
+                        {{ document.upload_date.strftime('%Y-%m-%d %H:%M') }}
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="list-group-item activity-item">
+                    <div class="text-center py-3">
+                        <p>No recent activity to display.</p>
+                        <p>Start by uploading documents or chatting with the AI!</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

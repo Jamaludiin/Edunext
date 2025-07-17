@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Document Management - {{ subject.name }} - Admin Dashboard{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .table {
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 0;
+        background-color: var(--bg-darker);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .table th {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--text-secondary);
+        font-weight: 500;
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .table td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .table td.filename {
+        max-width: 300px;
+        white-space: normal;
+        word-wrap: break-word;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .table tbody tr:nth-child(odd) {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .table tbody tr:hover td {
+        color: rgba(255, 255, 255, 1);
+    }
+
+    .card-body {
+        padding: 0;
+    }
+
+    .table-responsive {
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    h1 {
+        font-size: 1.75rem;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="text-white mb-0">{{ subject.name }} ({{ subject.code }})</h1>
+            <p class="text-muted small">Knowledge Base Documents</p>
+        </div>
+        <div>
+            <a href="{{ url_for('admin.subjects') }}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left"></i> Back to Subjects
+            </a>
+            <a href="{{ url_for('admin.documents') }}" class="btn btn-primary">
+                <i class="fas fa-file-upload"></i> Upload Documents
+            </a>
+        </div>
+    </div>
+
+    <!-- Subject Info -->
+    <div class="card shadow-sm mb-4 bg-dark">
+        <div class="card-header">
+            <h5 class="mb-0 text-white">Subject Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Code:</strong> {{ subject.code }}</p>
+                    <p><strong>Description:</strong> {{ subject.description or 'No description available' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Status:</strong>
+                        <span class="badge bg-{{ 'success' if subject.is_active else 'secondary' }}">
+                            {{ 'Active' if subject.is_active else 'Inactive' }}
+                        </span>
+                    </p>
+                    <p><strong>Enrolled Students:</strong> {{ subject.enrolled_students|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Knowledge Base Documents -->
+    <div class="card shadow-sm bg-dark">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-white">Knowledge Base Documents</h5>
+                <span class="badge bg-primary">{{ subject.documents|length }} Total</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive rounded">
+                <table class="table table-hover table-dark">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Filename</th>
+                            <th>File Size</th>
+                            <th>Uploaded By</th>
+                            <th>Upload Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for document in subject.documents %}
+                        <tr>
+                            <td>{{ document.id }}</td>
+                            <td class="filename">{{ document.original_filename }}</td>
+                            <td>{{ (document.file_size / 1024)|round(2) }} KB</td>
+                            <td>{{ document.uploader.name if document.uploader else 'Unknown' }}</td>
+                            <td>{{ document.upload_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('main.download_document', document_id=document.id) }}"
+                                        class="btn btn-sm btn-success">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <form action="{{ url_for('admin.delete_document', document_id=document.id) }}"
+                                        method="post" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="redirect_url"
+                                            value="{{ url_for('admin.subject_documents', subject_id=subject.id) }}">
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Are you sure you want to delete this document? This action cannot be undone.');">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">No documents associated with this subject</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
