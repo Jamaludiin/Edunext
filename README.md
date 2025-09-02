@@ -1,4 +1,4 @@
-# AI-Based Personalized Learning Assistance for MSU Students
+# AI-Based Personalized Learning Assistance for Students
 
 An intelligent learning system designed to provide personalized study support through AI, incorporating real-time AI chatbot assistance, adaptive assessments, progress tracking, and tailored study recommendations.
 
@@ -141,4 +141,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ for MSU Students**
+**Built with ❤️ for Students**
+
